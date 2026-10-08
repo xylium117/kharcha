@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
 import { Hourglass, MessageCircleHeart, ShoppingCart } from "lucide-react";
@@ -170,7 +170,7 @@ export default function BuyPage() {
                   variant="ghost"
                   onClick={() => router.push(`/guide?q=${encodeURIComponent(`Should I buy ${item.trim() || "this"} for ₹${p}?`)}`)}
                 >
-                  <MessageCircleHeart size={16} /> Ask Kharcha
+                  <MessageCircleHeart size={16} /> Ask Stash
                 </Button>
               </div>
             </div>

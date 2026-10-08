@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { addDays, format } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -76,7 +76,7 @@ export function WeeklyReportCard({ delay = 0 }: { delay?: number }) {
       </p>
       {!report ? (
         <div className="flex flex-col items-start gap-3">
-          <p className="text-sm text-muted">Kharcha has graded your last week. Ready to see it?</p>
+          <p className="text-sm text-muted">Stash has graded your last week. Ready to see it?</p>
           <Button onClick={generate} disabled={busy}>
             {busy ? "Grading…" : "Reveal my grade 🎓"}
           </Button>

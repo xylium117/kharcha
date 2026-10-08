@@ -1,6 +1,6 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-serve.py — OpenAI-compatible streaming inference server for the Kharcha model.
+serve.py — OpenAI-compatible streaming inference server for the Stash model.
 
 The Next.js app calls /v1/chat/completions with streaming=true, just like
 it would any OpenAI-compatible endpoint. No changes to the frontend needed —
@@ -127,7 +127,7 @@ async def stream_tokens(messages: list[Message], max_tokens: int, temperature: f
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Kharcha LLM Server")
+app = FastAPI(title="Stash LLM Server")
 
 
 @app.get("/health")

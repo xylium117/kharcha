@@ -1,6 +1,6 @@
-﻿# Kharcha 🦉 — Fine-tuned LLM
+# Stash 🦉 — Fine-tuned LLM
 
-Fine-tunes **Qwen2.5-7B-Instruct** with QLoRA on Kharcha-style financial Q&A, then serves it as a drop-in replacement for the Gemini/Claude backends.
+Fine-tunes **Qwen2.5-7B-Instruct** with QLoRA on Stash-style financial Q&A, then serves it as a drop-in replacement for the Gemini/Claude backends.
 
 ## Directory layout
 

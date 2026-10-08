@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { addMonths, differenceInCalendarDays, format } from "date-fns";
 import { Plus, Trash2 } from "lucide-react";
@@ -61,7 +61,7 @@ export default function GoalsPage() {
       {goals.length === 0 && (
         <Card>
           <EmptyState emoji="🎯" title="No goals yet">
-            Saving for headphones, a trip or a new phone? Add a goal and Kharcha will tell you how much to put aside each day.
+            Saving for headphones, a trip or a new phone? Add a goal and Stash will tell you how much to put aside each day.
           </EmptyState>
         </Card>
       )}

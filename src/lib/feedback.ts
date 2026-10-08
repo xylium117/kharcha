@@ -1,4 +1,4 @@
-﻿import { differenceInCalendarDays } from "date-fns";
+import { differenceInCalendarDays } from "date-fns";
 import { db } from "./db";
 import { dayKey } from "./format";
 
@@ -34,7 +34,7 @@ export async function usageSummary(now = new Date()): Promise<string> {
     `Kharcha usage – week ${weekNumber(settings.createdAt, now)}`,
     `Days since start: ${daysUsing} · days with something logged: ${daysLogged} (${Math.round((daysLogged / daysUsing) * 100)}%)`,
     `Expenses logged: ${expenses.length} (quick ${by("quick")}, form ${by("form")}, just-type ${by("ai")}, recurring ${by("recurring")}, split ${by("split")})`,
-    `Questions to Kharcha: ${settings.guruQuestions ?? 0} · Stats Lab visits: ${settings.statsVisits ?? 0} · badges: ${badges}`,
+    `Questions to Stash: ${settings.guruQuestions ?? 0} · Stats Lab visits: ${settings.statsVisits ?? 0} · badges: ${badges}`,
     `Goals: ${goals.length} · IOUs: ${ious.length} · money-in entries: ${income.length} · wishlist items: ${wishlist.length} · recurring: ${recurring.length}`,
     `Backed up: ${settings.lastBackupAt ? "yes" : "no"} · installed as app: ${standalone ? "yes" : "no"}`,
   ].join("\n");

@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
@@ -8,7 +8,7 @@ const grotesk = Space_Grotesk({ variable: "--font-grotesk", subsets: ["latin"] }
 
 export const metadata: Metadata = {
   title: "Kharcha",
-  description: "A pocket-money tracker for college students, with Kharcha the owl as your AI money guide",
+  description: "A pocket-money tracker for college students, with Stash the owl as your AI money guide",
   appleWebApp: { capable: true, title: "Kharcha", statusBarStyle: "default" },
   icons: { apple: "/pwa-icon/180" },
 };

@@ -1,4 +1,4 @@
-﻿import { budgetFor, getPeriod, inRange, sum } from "./budget";
+import { budgetFor, getPeriod, inRange, sum } from "./budget";
 import { buildDayMap, loggingStreak, noJunkWeek, underLimitStreak } from "./streaks";
 import type { Expense, Goal, GoalContribution, IOU, Settings, WishItem } from "./types";
 
@@ -20,7 +20,7 @@ export const BADGES: BadgeDef[] = [
   { id: "goal-getter", name: "Goal Getter", emoji: "🎯", description: "Completed a savings goal" },
   { id: "budget-ninja", name: "Budget Ninja", emoji: "🥷", description: "Finished a whole month under budget" },
   { id: "stats-nerd", name: "Stats Nerd", emoji: "🤓", description: "Opened the Stats Lab 5 times" },
-  { id: "curious", name: "Curious Mind", emoji: "🦉", description: "Asked Kharcha 10 questions" },
+  { id: "curious", name: "Curious Mind", emoji: "🦉", description: "Asked Stash 10 questions" },
   { id: "fair-square", name: "Fair & Square", emoji: "🤝", description: "Settled 5 IOUs" },
   { id: "impulse-slayer", name: "Impulse Slayer", emoji: "🗡️", description: "Skipped an item after the 24h cool-off" },
   { id: "centurion", name: "Centurion", emoji: "💯", description: "Logged 100 expenses" },

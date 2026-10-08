@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -110,7 +110,7 @@ function ProfileCard({ settings }: { settings: Settings }) {
 
 const SEASONS: { id: SeasonMode; emoji: string; name: string; desc: string }[] = [
   { id: "normal", emoji: "🌤️", name: "Normal", desc: "Regular college days" },
-  { id: "exam", emoji: "📚", name: "Exam season", desc: "Food, notes & travel first; Kharcha gets strict on fun" },
+  { id: "exam", emoji: "📚", name: "Exam season", desc: "Food, notes & travel first; Stash gets strict on fun" },
   { id: "fest", emoji: "🎉", name: "Fest mode", desc: "Add a fest fund on top of this month's budget" },
   { id: "home", emoji: "🏠", name: "Home trip", desc: "Lower budget while you're home – save the rest" },
 ];

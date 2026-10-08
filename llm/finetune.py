@@ -1,6 +1,6 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-finetune.py — QLoRA fine-tuning of Qwen2.5-7B-Instruct on Kharcha chat data.
+finetune.py — QLoRA fine-tuning of Qwen2.5-7B-Instruct on Stash chat data.
 
 Requires a CUDA GPU with ≥12 GB VRAM (e.g. T4, A10, 3090).
 For Colab: Runtime → Change runtime type → T4 GPU.

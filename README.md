@@ -1,6 +1,6 @@
-﻿# Kharcha 🦉
+# Stash 🦉
 
-A pocket-money expense tracker for Kharcha (Statistics Hons.), with an AI money mentor named **Kharcha**.
+A pocket-money expense tracker for Kharcha (Statistics Hons.), with an AI money mentor named **Stash**.
 
 - **Dashboard:** "safe to spend today", the month ring, streaks, quick-add buttons and recent expenses.
 - **Add expenses three ways:** one-tap quick buttons, a full form, or "just type it" (e.g. `momos 120 at Dey's stall`). Each expense gets a Need / Want / Waste tag, a place, a payment mode and a mood.
@@ -12,7 +12,7 @@ A pocket-money expense tracker for Kharcha (Statistics Hons.), with an AI money 
   - Welch's t-test (weekend vs weekday)
   - month-end forecast with a 95% interval and P(within budget)
   - weekday × time heatmap
-- **Ask Kharcha:** an AI chat that sees your real numbers and gives ✅ / ⚠️ / ❌ verdicts on purchases.
+- **Ask Stash:** an AI chat that sees your real numbers and gives ✅ / ⚠️ / ❌ verdicts on purchases.
 - **Savings goals**, **Splits & IOUs**, **Should I buy it?** (with a 24-hour cool-off wishlist), a **weekly report card**, **badges & streaks**, and **semester modes** (exam, fest, home trip).
 
 All data stays in your browser (IndexedDB). Nothing is uploaded, except the short summary sent to Claude when you ask Kharcha something.
@@ -34,7 +34,7 @@ npm run dev
 
 Open http://localhost:3000. On first launch you can start fresh or explore with 80 days of demo data.
 
-## Turn on Kharcha (AI)
+## Turn on Stash (AI)
 
 1. Copy `.env.example` to `.env.local`.
 2. Set **one** key:
@@ -89,7 +89,7 @@ Each device keeps its own data: use **Settings → Your data → Export/Import b
 ```
 src/app/            pages (/, history, reports, stats, guide, goals, splits, buy, settings) + API routes
 src/app/api/        chat (streaming), parse-expense, weekly-report, status – server only
-src/components/     AppShell (nav, toasts, badges), AddExpenseSheet, charts, Mascot (Kharcha the owl)
+src/components/     AppShell (nav, toasts, badges), AddExpenseSheet, charts, Mascot (Stash the owl)
 src/lib/budget.ts   budget periods, safe-to-spend, recurring, goal reserves
 src/lib/stats.ts    descriptive stats, t-distribution, Welch test, histogram, forecast
 src/lib/db.ts       Dexie (IndexedDB) schema

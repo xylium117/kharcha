@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { useState } from "react";
@@ -45,7 +45,7 @@ export function Onboarding() {
           <Mascot mood="party" size={110} className="animate-bob" />
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight">Kharcha</h1>
           <p className="mt-2 text-sm text-muted">
-            Hi! I&apos;m <b className="text-ink">Kharcha</b> 🦉, your money buddy. Tell me a little about your pocket money and
+            Hi! I&apos;m <b className="text-ink">Stash</b> 🦉, your money buddy. Tell me a little about your pocket money and
             let&apos;s make every rupee count.
           </p>
         </div>

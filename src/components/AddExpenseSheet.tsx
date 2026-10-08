@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { format } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -232,7 +232,7 @@ export function AddExpenseSheet({
 
       {tab === "ai" && !edit && (
         <div className="space-y-3">
-          <p className="text-sm text-muted">Type it like you&apos;d text a friend. Kharcha fills in the form, and you check it before saving.</p>
+          <p className="text-sm text-muted">Type it like you&apos;d text a friend. Stash fills in the form, and you check it before saving.</p>
           <textarea
             value={aiText}
             onChange={(e) => setAiText(e.target.value)}
@@ -256,7 +256,7 @@ export function AddExpenseSheet({
           </div>
           {aiOnline === false && (
             <p className="rounded-2xl bg-bg-soft p-3 text-sm text-muted">
-              🦉 Kharcha is offline. Add your free <code>GEMINI_API_KEY</code> to <code>.env.local</code> and restart the app to use this.
+              🦉 Stash is offline. Add your free <code>GEMINI_API_KEY</code> to <code>.env.local</code> and restart the app to use this.
             </p>
           )}
           {aiError && <p className="text-sm text-bad">{aiError}</p>}
@@ -276,7 +276,7 @@ export function AddExpenseSheet({
         >
           {aiFilled && (
             <div className="flex items-center gap-2 rounded-2xl bg-accent-soft px-3 py-2 text-sm font-medium text-accent">
-              <Sparkles size={16} /> Filled by Kharcha – check it and save.
+              <Sparkles size={16} /> Filled by Stash – check it and save.
             </div>
           )}
           <div className={cn("flex items-center gap-2 rounded-3xl bg-bg-soft px-4 py-2", shake && "animate-shake")}>

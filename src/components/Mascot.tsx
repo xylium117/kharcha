@@ -1,4 +1,4 @@
-﻿import type { Health } from "@/lib/budget";
+import type { Health } from "@/lib/budget";
 import { cn } from "./ui";
 
 export type Mood = "happy" | "chill" | "worried" | "party";
@@ -10,7 +10,7 @@ export function moodFromHealth(h: Health | undefined): Mood {
   return "chill";
 }
 
-/** Kharcha the owl. */
+/** Stash the owl. */
 export function Mascot({ mood = "happy", size = 72, className }: { mood?: Mood; size?: number; className?: string }) {
   const eye = (cx: number) => {
     if (mood === "party") {
@@ -32,7 +32,7 @@ export function Mascot({ mood = "happy", size = 72, className }: { mood?: Mood; 
       height={size}
       className={cn("shrink-0", className)}
       role="img"
-      aria-label={`Kharcha the owl looking ${mood}`}
+      aria-label={`Stash the owl looking ${mood}`}
     >
       {mood === "party" && (
         <g>
