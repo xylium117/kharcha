@@ -4,18 +4,22 @@ import { ApiError as GeminiApiError, GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
 /**
- * Two interchangeable AI backends:
+ * Three interchangeable AI backends:
  * - "gemini": Google's free tier (GEMINI_API_KEY). Free-tier prompts may be used by Google,
  *   so the client sends a trimmed snapshot (no places, notes or names) – see /api/status.
  * - "claude": paid Anthropic API (ANTHROPIC_API_KEY).
+ * - "local": self-hosted fine-tuned Sinchan model (LOCAL_LLM_URL, e.g. http://localhost:11434).
+ *   Run `uv run python llm/serve.py --model ./llm/merged/sinchan-v1` to start it.
  * Gemini wins when both keys are set, unless AI_PROVIDER says otherwise.
  */
-export type Provider = "gemini" | "claude";
+export type Provider = "gemini" | "claude" | "local";
 
 export function aiProvider(): Provider | null {
   const forced = process.env.AI_PROVIDER;
+  if (forced === "local" && process.env.LOCAL_LLM_URL) return "local";
   if (forced === "claude" && process.env.ANTHROPIC_API_KEY) return "claude";
   if (forced === "gemini" && process.env.GEMINI_API_KEY) return "gemini";
+  if (process.env.LOCAL_LLM_URL) return "local";
   if (process.env.GEMINI_API_KEY) return "gemini";
   if (process.env.ANTHROPIC_API_KEY) return "claude";
   return null;
@@ -85,6 +89,57 @@ export async function* geminiChat(
   }
 }
 
+// ---------- Local fine-tuned model ----------
+
+/** Streams a chat reply from the local Sinchan inference server (serve.py). */
+export async function* localChat(
+  system: string,
+  history: { role: "user" | "assistant"; content: string }[],
+): AsyncGenerator<string> {
+  const url = process.env.LOCAL_LLM_URL;
+  if (!url) throw new Error("LOCAL_LLM_URL is not set");
+
+  const messages = [
+    { role: "system", content: system },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  const res = await fetch(`${url}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, stream: true, max_tokens: 1024 }),
+  });
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Local LLM error (${res.status}): ${text}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data: ")) continue;
+      const data = trimmed.slice(6);
+      if (data === "[DONE]") return;
+      try {
+        const json = JSON.parse(data) as { choices?: { delta?: { content?: string } }[] };
+        const text = json.choices?.[0]?.delta?.content;
+        if (text) yield text;
+      } catch {
+        // skip malformed SSE lines
+      }
+    }
+  }
+}
+
 /** One Gemini call constrained to a JSON schema, validated with zod. Returns null if the output doesn't fit. */
 export async function geminiJSON<T extends z.ZodType>(system: string, user: string, schema: T): Promise<z.infer<T> | null> {
   // Gemini rejects the "$schema" meta key, so drop it.
@@ -120,13 +175,51 @@ export async function geminiJSON<T extends z.ZodType>(system: string, user: stri
   }
 }
 
+/**
+ * One call to the local fine-tuned model for structured JSON output.
+ * The model is prompted to return only a JSON object; the result is validated with zod.
+ * Returns null if the output doesn't fit the schema.
+ */
+export async function localJSON<T extends z.ZodType>(system: string, user: string, schema: T): Promise<z.infer<T> | null> {
+  const url = process.env.LOCAL_LLM_URL;
+  if (!url) throw new Error("LOCAL_LLM_URL is not set");
+
+  const jsonSchema = { ...(z.toJSONSchema(schema) as Record<string, unknown>) };
+  delete jsonSchema.$schema;
+
+  const messages = [
+    { role: "system", content: `${system}\n\nReply with ONLY a valid JSON object matching this schema (no markdown, no explanation):\n${JSON.stringify(jsonSchema)}` },
+    { role: "user", content: user },
+  ];
+
+  const res = await fetch(`${url}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, stream: false, max_tokens: 1024, temperature: 0.1 }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`Local LLM error (${res.status}): ${text}`);
+  }
+  const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const content = json.choices?.[0]?.message?.content ?? "";
+  // Strip optional markdown fences the model might add
+  const cleaned = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  try {
+    const parsed = schema.safeParse(JSON.parse(cleaned));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------- shared ----------
 
 /** Returns a Response to send back when the request isn't allowed, or null when it is. */
 export function guard(req: Request): Response | null {
   if (!aiConfigured()) {
     return Response.json(
-      { error: "AI is offline: add GEMINI_API_KEY (free) or ANTHROPIC_API_KEY to .env.local and restart." },
+      { error: "AI is offline: set LOCAL_LLM_URL=http://localhost:11434 and run `uv run python llm/serve.py` — or add GEMINI_API_KEY / ANTHROPIC_API_KEY to .env.local." },
       { status: 503 },
     );
   }
@@ -138,6 +231,16 @@ export function guard(req: Request): Response | null {
 }
 
 export function errorResponse(err: unknown): Response {
+  // Local model connection errors
+  if (err instanceof Error && err.message.startsWith("Local LLM error")) {
+    return Response.json({ error: `Local model error: ${err.message}` }, { status: 502 });
+  }
+  if (err instanceof TypeError && String(err.message).includes("fetch") && process.env.LOCAL_LLM_URL) {
+    return Response.json(
+      { error: `Cannot reach local model at ${process.env.LOCAL_LLM_URL}. Is serve.py running?` },
+      { status: 503 },
+    );
+  }
   if (err instanceof GeminiApiError) {
     if (err.status === 429) {
       return Response.json({ error: "Sinchan has hit the free Gemini limit – try again in a minute (or tomorrow)." }, { status: 429 });

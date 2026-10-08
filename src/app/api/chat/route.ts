@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { aiProvider, errorResponse, fallbackParams, geminiChat, getClient, guard, GURU_MODEL, GURU_SYSTEM } from "@/lib/server/ai";
+import { aiProvider, errorResponse, fallbackParams, geminiChat, getClient, guard, GURU_MODEL, GURU_SYSTEM, localChat } from "@/lib/server/ai";
 
 const Body = z.object({
   snapshot: z.string().max(20_000),
@@ -50,7 +50,11 @@ export async function POST(req: Request) {
       : m,
   );
 
-  const chunks = aiProvider() === "gemini" ? geminiChat(GURU_SYSTEM, turns) : claudeChat(turns);
+  const provider = aiProvider();
+  const chunks =
+    provider === "gemini" ? geminiChat(GURU_SYSTEM, turns)
+    : provider === "local" ? localChat(GURU_SYSTEM, turns)
+    : claudeChat(turns);
 
   // Pull the first chunk before answering, so setup errors (bad key, rate limit) become proper error responses.
   let first: IteratorResult<string>;

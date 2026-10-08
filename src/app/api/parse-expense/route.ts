@@ -1,6 +1,6 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
-import { aiProvider, errorResponse, geminiJSON, getClient, guard, PARSER_MODEL } from "@/lib/server/ai";
+import { aiProvider, errorResponse, geminiJSON, getClient, guard, localJSON, PARSER_MODEL } from "@/lib/server/ai";
 
 const Body = z.object({
   text: z.string().min(1).max(500),
@@ -37,8 +37,11 @@ Tag: "need" for essentials (meals, travel to college, notes, medicine), "want" f
 
   try {
     let result: z.infer<typeof Schema> | null;
-    if (aiProvider() === "gemini") {
+    const provider = aiProvider();
+    if (provider === "gemini") {
       result = await geminiJSON(system, text, Schema);
+    } else if (provider === "local") {
+      result = await localJSON(system, text, Schema);
     } else {
       const response = await getClient().messages.parse({
         model: PARSER_MODEL,

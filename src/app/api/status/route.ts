@@ -8,6 +8,7 @@ export async function GET() {
     ai: provider !== null,
     provider,
     // Gemini's free tier may use prompts to improve Google's products, so the client sends less detail.
+    // Local and Claude receive the full snapshot (data stays on your server/machine).
     trimSnapshot: provider === "gemini",
     passcodeRequired: Boolean(process.env.APP_PASSCODE),
   });
