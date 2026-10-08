@@ -278,7 +278,7 @@ def make_advice_example(rng: random.Random, s: dict) -> dict:
 # ---------------------------------------------------------------------------
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="data/Kharcha_train.jsonl")
+    parser.add_argument("--out", default="data/stash_train.jsonl")
     parser.add_argument("--samples", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

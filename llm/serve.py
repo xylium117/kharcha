@@ -7,13 +7,13 @@ it would any OpenAI-compatible endpoint. No changes to the frontend needed —
 only set AI_PROVIDER=local and LOCAL_LLM_URL=http://localhost:11434 in .env.local.
 
 Usage:
-  uv run python serve.py --model ./merged/Kharcha-v1 --port 11434
+  uv run python serve.py --model ./merged/stash-v1 --port 11434
 
   # Or with a HuggingFace Hub model:
-  uv run python serve.py --model your-username/Kharcha-v1 --port 11434
+  uv run python serve.py --model your-username/stash-v1 --port 11434
 
   # 4-bit quantisation (saves VRAM, slightly slower):
-  uv run python serve.py --model ./merged/Kharcha-v1 --load_in_4bit
+  uv run python serve.py --model ./merged/stash-v1 --load_in_4bit
 """
 
 from __future__ import annotations

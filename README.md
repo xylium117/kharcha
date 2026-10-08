@@ -1,6 +1,6 @@
-# Stash 🦉
+# Kharcha 🦉
 
-A pocket-money expense tracker for Kharcha (Statistics Hons.), with an AI money mentor named **Stash**.
+A pocket-money expense tracker for college students, with an AI money mentor named **Stash**.
 
 - **Dashboard:** "safe to spend today", the month ring, streaks, quick-add buttons and recent expenses.
 - **Add expenses three ways:** one-tap quick buttons, a full form, or "just type it" (e.g. `momos 120 at Dey's stall`). Each expense gets a Need / Want / Waste tag, a place, a payment mode and a mood.
@@ -15,7 +15,7 @@ A pocket-money expense tracker for Kharcha (Statistics Hons.), with an AI money 
 - **Ask Stash:** an AI chat that sees your real numbers and gives ✅ / ⚠️ / ❌ verdicts on purchases.
 - **Savings goals**, **Splits & IOUs**, **Should I buy it?** (with a 24-hour cool-off wishlist), a **weekly report card**, **badges & streaks**, and **semester modes** (exam, fest, home trip).
 
-All data stays in your browser (IndexedDB). Nothing is uploaded, except the short summary sent to Claude when you ask Kharcha something.
+All data stays in your browser (IndexedDB). Nothing is uploaded, except the short summary sent to the AI when you ask Stash something.
 
 ## Run it
 

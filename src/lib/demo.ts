@@ -1,4 +1,4 @@
-﻿import { addDays, addMonths, startOfDay } from "date-fns";
+import { addDays, addMonths, startOfDay } from "date-fns";
 import { clearAll } from "./backup";
 import { db, uid } from "./db";
 import { DEFAULT_CATEGORIES, DEFAULT_QUICK_BUTTONS, defaultSettings } from "./defaults";
@@ -46,7 +46,7 @@ const TEMPLATES: Tpl[] = [
   { title: "T-shirt", cat: "shopping", min: 300, max: 700, tag: "want", place: "Myntra", pay: "UPI", hours: [20, 23], weight: 0.15, weekendBoost: 2 },
 ];
 
-export async function loadDemoData(name = "Kharcha", budget = 6000): Promise<void> {
+export async function loadDemoData(name = "Student", budget = 6000): Promise<void> {
   await clearAll();
   const rand = mulberry32(42);
   const now = new Date();

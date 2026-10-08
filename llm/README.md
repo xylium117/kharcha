@@ -13,7 +13,7 @@ llm/
 ├── serve.py               ← FastAPI inference server (OpenAI-compatible)
 ├── requirements.txt       ← Python deps
 └── data/
-    └── Kharcha_train.jsonl   (generated, not committed)
+    └── stash_train.jsonl   (generated, not committed)
 ```
 
 ## Quickstart
@@ -32,16 +32,16 @@ uv pip install -r requirements.txt
 
 ### 2 — Generate training data
 ```bash
-uv run python generate_data.py --out data/Kharcha_train.jsonl --samples 2000
+uv run python generate_data.py --out data/stash_train.jsonl --samples 2000
 ```
 This synthesises realistic student finance scenarios using the same system prompt as the live app. Review a few rows before training.
 
 ### 3 — Fine-tune (GPU required)
 ```bash
 uv run python finetune.py \
-  --data data/Kharcha_train.jsonl \
+  --data data/stash_train.jsonl \
   --base_model Qwen/Qwen2.5-7B-Instruct \
-  --output_dir ./checkpoints/Kharcha-v1 \
+  --output_dir ./checkpoints/stash-v1 \
   --epochs 3 \
   --lora_r 64
 ```
@@ -50,14 +50,14 @@ Takes ~2–4 h on a single A100 or ~8 h on a T4 (Colab).
 ### 4 — Merge LoRA adapters into full model
 ```bash
 uv run python merge.py \
-  --adapter ./checkpoints/Kharcha-v1 \
+  --adapter ./checkpoints/stash-v1 \
   --base_model Qwen/Qwen2.5-7B-Instruct \
-  --output_dir ./merged/Kharcha-v1
+  --output_dir ./merged/stash-v1
 ```
 
 ### 5 — Run inference server
 ```bash
-uv run python serve.py --model ./merged/Kharcha-v1 --port 11434
+uv run python serve.py --model ./merged/stash-v1 --port 11434
 ```
 
 ### 6 — Point the app at it
