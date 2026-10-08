@@ -1,6 +1,6 @@
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { aiProvider, errorResponse, fallbackParams, geminiJSON, getClient, guard, GURU_MODEL, localJSON } from "@/lib/server/ai";
+import { aiProvider, errorResponse, fallbackParams, geminiJSON, getClient, guard, GURU_MODEL, huggingfaceJSON, localJSON } from "@/lib/server/ai";
 
 const Body = z.object({
   name: z.string().max(60),
@@ -29,7 +29,9 @@ export async function POST(req: Request) {
   try {
     let report: z.infer<typeof Report> | null;
     const provider = aiProvider();
-    if (provider === "gemini") {
+    if (provider === "huggingface") {
+      report = await huggingfaceJSON(system, user, Report);
+    } else if (provider === "gemini") {
       report = await geminiJSON(system, user, Report);
     } else if (provider === "local") {
       report = await localJSON(system, user, Report);

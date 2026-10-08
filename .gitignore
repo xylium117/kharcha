@@ -42,3 +42,9 @@ next-env.d.ts
 
 # keep the example env file
 !.env.example
+
+# LLM fine-tuning artifacts
+/llm/data/
+/llm/checkpoints/
+/llm/merged/
+/llm/.venv/

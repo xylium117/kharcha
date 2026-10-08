@@ -11,7 +11,7 @@ The data is synthetic but grounded in realistic Indian student finance
 numbers. No real user data is ever read.
 
 Usage:
-  uv run python generate_data.py --out data/Kharcha_train.jsonl --samples 2000
+  uv run python generate_data.py --out data/stash_train.jsonl --samples 2000
 """
 
 from __future__ import annotations
@@ -19,8 +19,12 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import sys
 import textwrap
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 # ---------------------------------------------------------------------------
 # Exact system prompt mirrored from src/lib/server/ai.ts
@@ -245,31 +249,99 @@ def make_purchase_example(rng: random.Random, s: dict) -> dict:
         verdict = "skip"
         verdict_text = "goes over what you can safely spend today"
 
-    q_tmpl, a_tmpl = rng.choice(PURCHASE_QA)
-    question = q_tmpl.format(price=price, item=item)
-    answer = eval(f'f"""{a_tmpl}"""', {"price": price, "item": item, "safe": safe,
-                                        "remaining": remaining, "verdict": verdict,
-                                        "verdict_text": verdict_text})
+    idx = rng.randint(0, 2)
+    if idx == 0:
+        question = f"Can I afford a ₹{price} {item} tonight?"
+        if verdict == "go":
+            tail = "It fits fine — go ahead! 🎉"
+        elif verdict == "think":
+            tail = "It would eat into tomorrow's buffer, so think before you swipe."
+        else:
+            tail = "It would push you over today's limit. Skip it for now."
+        answer = f"Your SAFE TO SPEND TODAY is ₹{safe}. A ₹{price} {item} {verdict_text}. {tail}\n\nVERDICT: {verdict}"
+    elif idx == 1:
+        question = f"Is ₹{price} on {item} a good idea right now?"
+        answer = f"Right now your safe-to-spend is ₹{safe} and you have ₹{remaining} left this period. ₹{price} on {item} {verdict_text}.\n\nVERDICT: {verdict}"
+    else:
+        question = f"Should I buy {item} for ₹{price}?"
+        if verdict == "go":
+            tail = f"All clear — ₹{price} fits comfortably."
+        elif verdict == "think":
+            tail = "Possible, but it will tighten things until next pocket money."
+        else:
+            tail = "Not right now — you would be dipping into reserves."
+        answer = f"Quick check: safe today = ₹{safe}, period remaining = ₹{remaining}. {tail}\n\nVERDICT: {verdict}"
+
     return {"question": question, "answer": answer}
 
 
 def make_advice_example(rng: random.Random, s: dict) -> dict:
     top_cat = max(s["cat_totals"], key=s["cat_totals"].get)
-    waste_pct = s["waste"] / max(s["spent"], 1) * 100
-    gap = max(0, (s["goal_lines"][0].split("₹")[-1].split("/")[0]) if s["goal_lines"][0] != "- none" else 0)
-    q_tmpl, a_tmpl = rng.choice(ADVICE_QA)
-    question = q_tmpl
-    try:
-        answer = eval(f'f"""{a_tmpl}"""', {
-            "waste": s["waste"], "waste_pct": waste_pct, "top_cat": top_cat,
-            "goal_per_day": gap, "daily": s["daily_allowance"], "gap": 0,
-            "days_left": s["days_left"], "remaining": s["remaining"],
-            "recurring": s["upcoming_recurring"], "safe_today": s["safe_today"],
-            "projected": s["projected_end"], "budget": s["budget"], "health": s["health"],
-            "safe": s["safe_today"], "streak": s["streak"],
-        })
-    except Exception:
-        answer = a_tmpl  # fallback: use template as-is
+    waste = s["waste"]
+    waste_pct = waste / max(s["spent"], 1) * 100
+    goal_line = s["goal_lines"][0]
+    gap = "50"
+    if goal_line != "- none" and "₹" in goal_line:
+        try:
+            gap = goal_line.split("₹")[-1].split("/")[0]
+        except Exception:
+            gap = "50"
+
+    idx = rng.randint(0, 6)
+    if idx == 0:
+        question = "Where am I wasting the most money?"
+        answer = (
+            f"Looking at your tags: ₹{waste} is labelled as waste this period "
+            f"— that's {waste_pct:.0f}% of what you've spent. "
+            f"Your biggest category is {top_cat}, which might have room to trim. "
+            "Try swapping one Zomato order for canteen this week and see how it feels."
+        )
+    elif idx == 1:
+        question = "How can I save faster for my goal?"
+        answer = (
+            f"You need ₹{gap}/day for your goal. Your daily allowance is ₹{s['daily_allowance']}. "
+            f"Doable if you cut one want per day. "
+            "Consider auto-moving a small amount right when pocket money arrives."
+        )
+    elif idx == 2:
+        question = "Plan my spending for the rest of this month."
+        answer = (
+            f"You have {s['days_left']} days left and ₹{s['remaining']} remaining (₹{s['daily_allowance']}/day). "
+            f"Priorities: cover recurring ₹{s['upcoming_recurring']}, keep goal reserve, then ₹{s['safe_today']} today. "
+            "Stick to need-first spending and review every evening for 2 minutes."
+        )
+    elif idx == 3:
+        question = "Am I spending too much?"
+        health = s["health"]
+        if health == "good":
+            tail = "You're in great shape!"
+        elif health == "ok":
+            tail = "A bit tight but manageable — tighten wants this week."
+        else:
+            tail = "You're tracking over budget. Time to cut waste now."
+        answer = f"At this pace you'll end the month at ₹{s['projected_end']} vs your ₹{s['budget']} budget — that's {health}. {tail}"
+    elif idx == 4:
+        question = "Cheap dinner ideas under ₹80."
+        answer = (
+            "Canteen thali is usually ₹50–70 and keeps you full. "
+            "Maggi + egg at home can be under ₹30. "
+            "If you're craving something different, a sandwich from the college stall is ~₹40. "
+            f"All well within your safe spend of ₹{s['safe_today']} today!"
+        )
+    elif idx == 5:
+        question = "How is my logging streak going?"
+        streak = s["streak"]
+        comment = "nice consistency!" if streak >= 7 else ("keep it going!" if streak >= 3 else "just getting started — log today and build the habit!")
+        answer = f"You're on a {streak}-day streak — {comment}. Consistent logging makes my advice way more accurate."
+    else:
+        question = "Should I invest my pocket money?"
+        answer = (
+            "Pocket money is best kept liquid for daily needs. "
+            "If you have a steady surplus, a liquid fund or high-interest savings account beats letting it sit. "
+            "For stocks or crypto — learn first, invest later; never put money you can't afford to lose. "
+            "I'm not a licensed advisor, so do your own research before committing any amount."
+        )
+
     return {"question": question, "answer": answer}
 
 

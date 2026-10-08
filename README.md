@@ -38,16 +38,20 @@ Open http://localhost:3000. On first launch you can start fresh or explore with 
 
 1. Copy `.env.example` to `.env.local`.
 2. Set **one** key:
-   - **Free:** `GEMINI_API_KEY=...` from https://aistudio.google.com/apikey (Google account, no card).
+   - **Free (Hugging Face):** `HF_TOKEN=...` from https://huggingface.co/settings/tokens (runs `Qwen/Qwen2.5-7B-Instruct` on Hugging Face Serverless API, no local GPU needed).
+   - **Free (Gemini):** `GEMINI_API_KEY=...` from https://aistudio.google.com/apikey (Google account, no card).
    - **Paid:** `ANTHROPIC_API_KEY=...` from https://console.anthropic.com/.
+   - **Self-hosted:** `LOCAL_LLM_URL=http://localhost:11434` (Ollama or `llm/serve.py`).
 3. Restart `npm run dev`.
 
 | Provider | Chat + weekly report | "Just type it" parsing |
 |---|---|---|
-| Gemini (free; used first when its key is set) | `gemini-flash-latest`, an alias for Google's current Flash model (`GEMINI_MODEL`) | same |
+| Hugging Face (free; open weights) | `Qwen/Qwen2.5-7B-Instruct` (`HF_MODEL`) | same |
+| Gemini (free) | `gemini-flash-latest`, an alias for Google's current Flash model (`GEMINI_MODEL`) | same |
 | Claude (paid) | `claude-sonnet-5-5` (`GURU_MODEL`) | `claude-haiku-4-5` (`PARSER_MODEL`) |
+| Local / Self-hosted | Fine-tuned Stash / Ollama (`LOCAL_LLM_URL`) | same |
 
-`AI_PROVIDER=claude|gemini` forces one when both keys are set. On Gemini's free tier, Google may use prompts to improve its products, so the app sends a **trimmed** summary: amounts, categories, tags, dates and goal numbers only. Item names, places, notes and friends' names are left out. "Just type it" still sends exactly the sentence you type.
+`AI_PROVIDER=huggingface|gemini|claude|local` forces one when multiple keys are set. On Gemini's free tier, Google may use prompts to improve its products, so the app sends a **trimmed** summary: amounts, categories, tags, dates and goal numbers only. Hugging Face, Claude, and local models receive the full snapshot.
 
 The key stays on the server and is never sent to the browser. Without a key, everything except the chat and "just type it" keeps working, and the weekly report uses a rule-based version.
 

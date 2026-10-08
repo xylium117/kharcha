@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { aiProvider, errorResponse, fallbackParams, geminiChat, getClient, guard, GURU_MODEL, GURU_SYSTEM, localChat } from "@/lib/server/ai";
+import { aiProvider, errorResponse, fallbackParams, geminiChat, getClient, guard, GURU_MODEL, GURU_SYSTEM, huggingfaceChat, localChat } from "@/lib/server/ai";
 
 const Body = z.object({
   snapshot: z.string().max(20_000),
@@ -52,7 +52,8 @@ export async function POST(req: Request) {
 
   const provider = aiProvider();
   const chunks =
-    provider === "gemini" ? geminiChat(GURU_SYSTEM, turns)
+    provider === "huggingface" ? huggingfaceChat(GURU_SYSTEM, turns)
+    : provider === "gemini" ? geminiChat(GURU_SYSTEM, turns)
     : provider === "local" ? localChat(GURU_SYSTEM, turns)
     : claudeChat(turns);
 
