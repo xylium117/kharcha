@@ -1,17 +1,17 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-generate_data.py — synthesise Sinchan training examples.
+generate_data.py — synthesise Kharcha training examples.
 
 Each example is a single chat turn:
   system  = GURU_SYSTEM (same prompt used in production)
   user    = <finance_snapshot>\\n...\\n</finance_snapshot>\\n\\n<question>
-  assistant = a Sinchan-style answer (with optional VERDICT line)
+  assistant = a Kharcha-style answer (with optional VERDICT line)
 
 The data is synthetic but grounded in realistic Indian student finance
 numbers. No real user data is ever read.
 
 Usage:
-  uv run python generate_data.py --out data/sinchan_train.jsonl --samples 2000
+  uv run python generate_data.py --out data/Kharcha_train.jsonl --samples 2000
 """
 
 from __future__ import annotations
@@ -26,10 +26,10 @@ from pathlib import Path
 # Exact system prompt mirrored from src/lib/server/ai.ts
 # ---------------------------------------------------------------------------
 GURU_SYSTEM = textwrap.dedent("""\
-    You are Sinchan 🦉, an owl and the personal money mentor inside "Kharcha", \
+    You are Kharcha 🦉, an owl and the personal money mentor inside "Kharcha", \
 an expense tracker for college students in India who live on monthly pocket money from family. \
 Speak to the user as "you" and refer to yourself as "I". Don't assume their name, course or background; \
-if the snapshot includes a name, you may use it now and then (if they're also called Sinchan, enjoy the coincidence).
+if the snapshot includes a name, you may use it now and then (if they're also called Kharcha, enjoy the coincidence).
 
     Personality: warm, encouraging, a little witty, like a smart senior from college. \
 Light Hinglish is fine occasionally. A quick, simple stats analogy (averages, outliers, "your typical day") \
@@ -278,7 +278,7 @@ def make_advice_example(rng: random.Random, s: dict) -> dict:
 # ---------------------------------------------------------------------------
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default="data/sinchan_train.jsonl")
+    parser.add_argument("--out", default="data/Kharcha_train.jsonl")
     parser.add_argument("--samples", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -110,7 +110,7 @@ function ProfileCard({ settings }: { settings: Settings }) {
 
 const SEASONS: { id: SeasonMode; emoji: string; name: string; desc: string }[] = [
   { id: "normal", emoji: "🌤️", name: "Normal", desc: "Regular college days" },
-  { id: "exam", emoji: "📚", name: "Exam season", desc: "Food, notes & travel first; Sinchan gets strict on fun" },
+  { id: "exam", emoji: "📚", name: "Exam season", desc: "Food, notes & travel first; Kharcha gets strict on fun" },
   { id: "fest", emoji: "🎉", name: "Fest mode", desc: "Add a fest fund on top of this month's budget" },
   { id: "home", emoji: "🏠", name: "Home trip", desc: "Lower budget while you're home – save the rest" },
 ];
@@ -557,7 +557,7 @@ function AICard({ settings }: { settings: Settings }) {
           </Button>
         </div>
       )}
-      <p className="mt-2 text-xs text-muted">Sinchan only sees a summary of your numbers when you ask a question. Your key stays on the server.{status?.trimSnapshot && status.ai && " On Gemini's free tier only amounts, categories and goal numbers are sent – no item names, places or friends' names – because Google may use free-tier prompts to improve its products."}</p>
+      <p className="mt-2 text-xs text-muted">Kharcha only sees a summary of your numbers when you ask a question. Your key stays on the server.{status?.trimSnapshot && status.ai && " On Gemini's free tier only amounts, categories and goal numbers are sent – no item names, places or friends' names – because Google may use free-tier prompts to improve its products."}</p>
     </Card>
   );
 }

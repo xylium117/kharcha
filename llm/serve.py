@@ -1,19 +1,19 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-serve.py — OpenAI-compatible streaming inference server for the Sinchan model.
+serve.py — OpenAI-compatible streaming inference server for the Kharcha model.
 
 The Next.js app calls /v1/chat/completions with streaming=true, just like
 it would any OpenAI-compatible endpoint. No changes to the frontend needed —
 only set AI_PROVIDER=local and LOCAL_LLM_URL=http://localhost:11434 in .env.local.
 
 Usage:
-  uv run python serve.py --model ./merged/sinchan-v1 --port 11434
+  uv run python serve.py --model ./merged/Kharcha-v1 --port 11434
 
   # Or with a HuggingFace Hub model:
-  uv run python serve.py --model your-username/sinchan-v1 --port 11434
+  uv run python serve.py --model your-username/Kharcha-v1 --port 11434
 
   # 4-bit quantisation (saves VRAM, slightly slower):
-  uv run python serve.py --model ./merged/sinchan-v1 --load_in_4bit
+  uv run python serve.py --model ./merged/Kharcha-v1 --load_in_4bit
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ async def stream_tokens(messages: list[Message], max_tokens: int, temperature: f
             "id": req_id,
             "object": "chat.completion.chunk",
             "created": int(time.time()),
-            "model": "sinchan",
+            "model": "Kharcha",
             "choices": [{"delta": {"content": token_text}, "index": 0, "finish_reason": None}],
         }
         yield f"data: {json.dumps(chunk)}\n\n"
@@ -117,7 +117,7 @@ async def stream_tokens(messages: list[Message], max_tokens: int, temperature: f
         "id": req_id,
         "object": "chat.completion.chunk",
         "created": int(time.time()),
-        "model": "sinchan",
+        "model": "Kharcha",
         "choices": [{"delta": {}, "index": 0, "finish_reason": "stop"}],
     }
     yield f"data: {json.dumps(done)}\n\n"
@@ -127,7 +127,7 @@ async def stream_tokens(messages: list[Message], max_tokens: int, temperature: f
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
-app = FastAPI(title="Sinchan LLM Server")
+app = FastAPI(title="Kharcha LLM Server")
 
 
 @app.get("/health")
@@ -166,7 +166,7 @@ async def chat_completions(req: ChatRequest):
         "id": f"chatcmpl-{uuid.uuid4().hex[:8]}",
         "object": "chat.completion",
         "created": int(time.time()),
-        "model": "sinchan",
+        "model": "Kharcha",
         "choices": [{"message": {"role": "assistant", "content": text}, "index": 0, "finish_reason": "stop"}],
     }
 

@@ -1,10 +1,10 @@
-import type { MetadataRoute } from "next";
+﻿import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Kharcha – pocket money tracker",
     short_name: "Kharcha",
-    description: "Track daily spending, stay on budget and ask Sinchan the owl before you buy.",
+    description: "Track daily spending, stay on budget and ask Kharcha the owl before you buy.",
     start_url: "/",
     display: "standalone",
     background_color: "#fffbf5",

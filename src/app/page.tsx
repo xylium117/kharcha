@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -26,7 +26,7 @@ import { buildDayMap, loggingStreak, underLimitStreak } from "@/lib/streaks";
 
 const SEASON_BANNER = {
   normal: null,
-  exam: { emoji: "📚", text: "Exam season – food, notes & travel first. Sinchan will be strict about fun spends." },
+  exam: { emoji: "📚", text: "Exam season – food, notes & travel first. Kharcha will be strict about fun spends." },
   fest: { emoji: "🎉", text: "Fest mode – enjoy! Your fest fund is included in this month's budget." },
   home: { emoji: "🏠", text: "Home trip – lower budget this month. Perfect time to stash some savings." },
 };
@@ -98,7 +98,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
             {greeting}, {settings.name}!
           </h1>
-          <p className="text-sm font-medium text-muted">Sinchan says: {line}</p>
+          <p className="text-sm font-medium text-muted">Kharcha says: {line}</p>
         </div>
       </div>
 
@@ -334,12 +334,12 @@ export default function Dashboard() {
         </Card>
 
         <div className="space-y-4">
-          {/* Ask Sinchan */}
+          {/* Ask Kharcha */}
           <Card delay={0.2} className="bg-gradient-to-br from-card to-accent-soft">
             <div className="flex items-start gap-3">
               <Mascot mood="happy" size={52} />
               <div className="min-w-0 flex-1">
-                <p className="font-bold">Ask Sinchan</p>
+                <p className="font-bold">Ask Kharcha</p>
                 <p className="text-sm text-muted">&ldquo;Can I afford a ₹350 pizza tonight?&rdquo;</p>
               </div>
             </div>
@@ -356,7 +356,7 @@ export default function Dashboard() {
                 placeholder="Should I buy…"
                 className="h-11 min-w-0 flex-1 rounded-2xl border border-line bg-card px-3.5 text-[15px] outline-none focus:border-accent"
               />
-              <button aria-label="Ask Sinchan" className="grid size-11 place-items-center rounded-2xl bg-accent text-white dark:text-[#15142a]">
+              <button aria-label="Ask Kharcha" className="grid size-11 place-items-center rounded-2xl bg-accent text-white dark:text-[#15142a]">
                 <Send size={18} />
               </button>
             </form>

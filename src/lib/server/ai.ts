@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { ApiError as GeminiApiError, GoogleGenAI } from "@google/genai";
 import { z } from "zod";
@@ -8,8 +8,8 @@ import { z } from "zod";
  * - "gemini": Google's free tier (GEMINI_API_KEY). Free-tier prompts may be used by Google,
  *   so the client sends a trimmed snapshot (no places, notes or names) – see /api/status.
  * - "claude": paid Anthropic API (ANTHROPIC_API_KEY).
- * - "local": self-hosted fine-tuned Sinchan model (LOCAL_LLM_URL, e.g. http://localhost:11434).
- *   Run `uv run python llm/serve.py --model ./llm/merged/sinchan-v1` to start it.
+ * - "local": self-hosted fine-tuned Kharcha model (LOCAL_LLM_URL, e.g. http://localhost:11434).
+ *   Run `uv run python llm/serve.py --model ./llm/merged/Kharcha-v1` to start it.
  * Gemini wins when both keys are set, unless AI_PROVIDER says otherwise.
  */
 export type Provider = "gemini" | "claude" | "local";
@@ -91,7 +91,7 @@ export async function* geminiChat(
 
 // ---------- Local fine-tuned model ----------
 
-/** Streams a chat reply from the local Sinchan inference server (serve.py). */
+/** Streams a chat reply from the local Kharcha inference server (serve.py). */
 export async function* localChat(
   system: string,
   history: { role: "user" | "assistant"; content: string }[],
@@ -243,7 +243,7 @@ export function errorResponse(err: unknown): Response {
   }
   if (err instanceof GeminiApiError) {
     if (err.status === 429) {
-      return Response.json({ error: "Sinchan has hit the free Gemini limit – try again in a minute (or tomorrow)." }, { status: 429 });
+      return Response.json({ error: "Kharcha has hit the free Gemini limit – try again in a minute (or tomorrow)." }, { status: 429 });
     }
     if (err.status === 503 || err.status === 500) {
       return Response.json({ error: "Google's free AI is busy right now – try again in a moment." }, { status: 503 });
@@ -260,7 +260,7 @@ export function errorResponse(err: unknown): Response {
     return Response.json({ error: "Your Anthropic API key was rejected. Check .env.local." }, { status: 401 });
   }
   if (err instanceof Anthropic.RateLimitError) {
-    return Response.json({ error: "Sinchan is getting too many questions – try again in a minute." }, { status: 429 });
+    return Response.json({ error: "Kharcha is getting too many questions – try again in a minute." }, { status: 429 });
   }
   if (err instanceof Anthropic.APIError) {
     return Response.json({ error: `AI error (${err.status ?? "network"}): ${err.message}` }, { status: 502 });
@@ -269,7 +269,7 @@ export function errorResponse(err: unknown): Response {
   return Response.json({ error: "Something went wrong talking to the AI." }, { status: 500 });
 }
 
-export const GURU_SYSTEM = `You are Sinchan 🦉, an owl and the personal money mentor inside "Kharcha", an expense tracker for college students in India who live on monthly pocket money from family. Speak to the user as "you" and refer to yourself as "I". Don't assume their name, course or background; if the snapshot includes a name, you may use it now and then (if they're also called Sinchan, enjoy the coincidence).
+export const GURU_SYSTEM = `You are Kharcha 🦉, an owl and the personal money mentor inside "Kharcha", an expense tracker for college students in India who live on monthly pocket money from family. Speak to the user as "you" and refer to yourself as "I". Don't assume their name, course or background; if the snapshot includes a name, you may use it now and then (if they're also called Kharcha, enjoy the coincidence).
 
 Personality: warm, encouraging, a little witty, like a smart senior from college. Light Hinglish is fine occasionally. A quick, simple stats analogy (averages, outliers, "your typical day") can make a point land – don't overdo it.
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -57,7 +57,7 @@ export function useUI(): UIContextValue {
 const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/history", label: "History", icon: History },
-  { href: "/guide", label: "Ask Sinchan", icon: MessageCircleHeart },
+  { href: "/guide", label: "Ask Kharcha", icon: MessageCircleHeart },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/stats", label: "Stats Lab", icon: FlaskConical },
   { href: "/goals", label: "Goals", icon: Target },
@@ -214,7 +214,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Plus size={28} strokeWidth={2.5} />
             </button>
           </div>
-          <BottomLink {...NAV[2]} label="Sinchan" active={pathname === "/guide"} />
+          <BottomLink {...NAV[2]} label="Kharcha" active={pathname === "/guide"} />
           <button
             onClick={() => setMoreOpen(true)}
             className={cn(

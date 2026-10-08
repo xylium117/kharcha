@@ -1,15 +1,15 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-finetune.py — QLoRA fine-tuning of Qwen2.5-7B-Instruct on Sinchan chat data.
+finetune.py — QLoRA fine-tuning of Qwen2.5-7B-Instruct on Kharcha chat data.
 
 Requires a CUDA GPU with ≥12 GB VRAM (e.g. T4, A10, 3090).
 For Colab: Runtime → Change runtime type → T4 GPU.
 
 Usage:
   uv run python finetune.py \\
-    --data data/sinchan_train.jsonl \\
+    --data data/Kharcha_train.jsonl \\
     --base_model Qwen/Qwen2.5-7B-Instruct \\
-    --output_dir ./checkpoints/sinchan-v1 \\
+    --output_dir ./checkpoints/Kharcha-v1 \\
     --epochs 3 \\
     --lora_r 64
 """
@@ -49,9 +49,9 @@ def format_chat(example: dict, tokenizer) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/sinchan_train.jsonl")
+    parser.add_argument("--data", default="data/Kharcha_train.jsonl")
     parser.add_argument("--base_model", default="Qwen/Qwen2.5-7B-Instruct")
-    parser.add_argument("--output_dir", default="./checkpoints/sinchan-v1")
+    parser.add_argument("--output_dir", default="./checkpoints/Kharcha-v1")
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--lora_r", type=int, default=64)
     parser.add_argument("--lora_alpha", type=int, default=128)

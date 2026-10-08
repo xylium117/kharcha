@@ -1,4 +1,4 @@
-# CLAUDE.md
+﻿# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Kharcha is a pocket-money expense tracker for one user (Sinchan, a Statistics Hons. student in India; amounts are in INR). It includes an AI mentor (an owl) that was renamed from "Guru" to "Sinchan", the same name as the user; code identifiers like `GURU_SYSTEM` / `GURU_MODEL` and the `/guide` route keep the old name. It's a Next.js 16 (App Router, Turbopack) + React 19 + Tailwind v4 app. **All user data lives in the browser (IndexedDB via Dexie)**: there's no backend database and no login. Phone and laptop each keep their own data, synced manually through the JSON backup in Settings. Don't add cloud storage or auth unless asked.
+Kharcha is a pocket-money expense tracker for one user (Kharcha, a Statistics Hons. student in India; amounts are in INR). It includes an AI mentor (an owl) that was renamed from "Guru" to "Kharcha", the same name as the user; code identifiers like `GURU_SYSTEM` / `GURU_MODEL` and the `/guide` route keep the old name. It's a Next.js 16 (App Router, Turbopack) + React 19 + Tailwind v4 app. **All user data lives in the browser (IndexedDB via Dexie)**: there's no backend database and no login. Phone and laptop each keep their own data, synced manually through the JSON backup in Settings. Don't add cloud storage or auth unless asked.
 
 The app was renamed from "Paisa Pal" to "Kharcha". The folder, package name, IndexedDB name (`paisa-pal`) and backup-file `app` id still say `paisa-pal` on purpose: renaming the database or backup id would orphan existing data and backups.
 
@@ -27,7 +27,7 @@ The preview launcher can't start `next dev` itself: macOS privacy blocks it from
 
 ## Users
 
-The app is shared with a few friends for a 3-month test. Each device has its own data, and the AI sees each person as themselves: never hard-code Sinchan's identity in prompts or UI (the owl mascot is also called "Sinchan"). Feedback goes to the external form at `NEXT_PUBLIC_FEEDBACK_URL` (see `src/lib/feedback.ts`). Schema changes must migrate testers' existing data.
+The app is shared with a few friends for a 3-month test. Each device has its own data, and the AI sees each person as themselves: never hard-code Kharcha's identity in prompts or UI (the owl mascot is also called "Kharcha"). Feedback goes to the external form at `NEXT_PUBLIC_FEEDBACK_URL` (see `src/lib/feedback.ts`). Schema changes must migrate testers' existing data.
 
 ## Architecture
 

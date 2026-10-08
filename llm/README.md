@@ -1,6 +1,6 @@
-# Sinchan 🦉 — Fine-tuned LLM
+﻿# Kharcha 🦉 — Fine-tuned LLM
 
-Fine-tunes **Qwen2.5-7B-Instruct** with QLoRA on Sinchan-style financial Q&A, then serves it as a drop-in replacement for the Gemini/Claude backends.
+Fine-tunes **Qwen2.5-7B-Instruct** with QLoRA on Kharcha-style financial Q&A, then serves it as a drop-in replacement for the Gemini/Claude backends.
 
 ## Directory layout
 
@@ -13,7 +13,7 @@ llm/
 ├── serve.py               ← FastAPI inference server (OpenAI-compatible)
 ├── requirements.txt       ← Python deps
 └── data/
-    └── sinchan_train.jsonl   (generated, not committed)
+    └── Kharcha_train.jsonl   (generated, not committed)
 ```
 
 ## Quickstart
@@ -32,16 +32,16 @@ uv pip install -r requirements.txt
 
 ### 2 — Generate training data
 ```bash
-uv run python generate_data.py --out data/sinchan_train.jsonl --samples 2000
+uv run python generate_data.py --out data/Kharcha_train.jsonl --samples 2000
 ```
 This synthesises realistic student finance scenarios using the same system prompt as the live app. Review a few rows before training.
 
 ### 3 — Fine-tune (GPU required)
 ```bash
 uv run python finetune.py \
-  --data data/sinchan_train.jsonl \
+  --data data/Kharcha_train.jsonl \
   --base_model Qwen/Qwen2.5-7B-Instruct \
-  --output_dir ./checkpoints/sinchan-v1 \
+  --output_dir ./checkpoints/Kharcha-v1 \
   --epochs 3 \
   --lora_r 64
 ```
@@ -50,14 +50,14 @@ Takes ~2–4 h on a single A100 or ~8 h on a T4 (Colab).
 ### 4 — Merge LoRA adapters into full model
 ```bash
 uv run python merge.py \
-  --adapter ./checkpoints/sinchan-v1 \
+  --adapter ./checkpoints/Kharcha-v1 \
   --base_model Qwen/Qwen2.5-7B-Instruct \
-  --output_dir ./merged/sinchan-v1
+  --output_dir ./merged/Kharcha-v1
 ```
 
 ### 5 — Run inference server
 ```bash
-uv run python serve.py --model ./merged/sinchan-v1 --port 11434
+uv run python serve.py --model ./merged/Kharcha-v1 --port 11434
 ```
 
 ### 6 — Point the app at it
@@ -75,7 +75,7 @@ Push merged model:
 ```bash
 huggingface-cli login
 python -c "from transformers import AutoModelForCausalLM, AutoTokenizer; \
-  m=AutoModelForCausalLM.from_pretrained('./merged/sinchan-v1'); \
-  m.push_to_hub('your-username/sinchan-v1')"
+  m=AutoModelForCausalLM.from_pretrained('./merged/Kharcha-v1'); \
+  m.push_to_hub('your-username/Kharcha-v1')"
 ```
 Then set `LOCAL_LLM_URL` to point at your HF Inference Endpoint.

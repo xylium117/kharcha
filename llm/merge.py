@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 merge.py — merge LoRA adapters into full model weights.
 
@@ -8,9 +8,9 @@ This script fuses it back into the base model for fast inference
 
 Usage:
   uv run python merge.py \\
-    --adapter ./checkpoints/sinchan-v1 \\
+    --adapter ./checkpoints/Kharcha-v1 \\
     --base_model Qwen/Qwen2.5-7B-Instruct \\
-    --output_dir ./merged/sinchan-v1
+    --output_dir ./merged/Kharcha-v1
 """
 
 from __future__ import annotations

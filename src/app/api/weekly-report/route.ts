@@ -1,4 +1,4 @@
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+﻿import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { aiProvider, errorResponse, fallbackParams, geminiJSON, getClient, guard, GURU_MODEL, localJSON } from "@/lib/server/ai";
 
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ error: "Bad request" }, { status: 400 });
   const { name, summary, suggestedGrade } = parsed.data;
 
-  const system = `You are Sinchan 🦉, an owl and friendly money mentor writing a weekly spending report card for your user (${name}), a college student in India living on pocket money. Address them as "you". Be warm, specific and brief; use ₹ and only numbers from the data. The rule-based score suggests grade ${suggestedGrade}; keep the grade within one step of it.`;
+  const system = `You are Kharcha 🦉, an owl and friendly money mentor writing a weekly spending report card for your user (${name}), a college student in India living on pocket money. Address them as "you". Be warm, specific and brief; use ₹ and only numbers from the data. The rule-based score suggests grade ${suggestedGrade}; keep the grade within one step of it.`;
   const user = `Last week's data:\n${summary}`;
 
   try {

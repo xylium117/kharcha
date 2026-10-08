@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { motion } from "framer-motion";
@@ -66,7 +66,7 @@ function Guide() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages?.length, streaming]);
 
-  // The online app needs its passcode before Sinchan can answer; ask for it right in the chat.
+  // The online app needs its passcode before Kharcha can answer; ask for it right in the chat.
   const needPasscode = aiOnline === true && ((passcodeRequired && !settings?.appPasscode) || wrongPasscode);
 
   async function savePasscode() {
@@ -126,7 +126,7 @@ function Guide() {
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
       <PageHeader
-        title="Ask Sinchan 🦉"
+        title="Ask Kharcha 🦉"
         subtitle="Your personal money mentor – knows your budget, goals and habits."
         action={
           messages.length > 0 && (
@@ -139,7 +139,7 @@ function Guide() {
 
       {aiOnline === false && (
         <div className="mb-4 rounded-2xl border border-line bg-card p-4 text-sm">
-          <p className="font-semibold">🦉 Sinchan is offline</p>
+          <p className="font-semibold">🦉 Kharcha is offline</p>
           <p className="mt-1 text-muted">
             Create a file <code className="rounded bg-bg-soft px-1">.env.local</code> in the app folder with{" "}
             <code className="rounded bg-bg-soft px-1">GEMINI_API_KEY=your-key</code> (free from aistudio.google.com), then restart <code>npm run dev</code>. Everything
@@ -228,7 +228,7 @@ function Guide() {
           rows={1}
           maxLength={1000}
           placeholder="Should I buy…?"
-          aria-label="Message Sinchan"
+          aria-label="Message Kharcha"
           className="max-h-32 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-[15px] outline-none"
         />
         <button
@@ -308,7 +308,7 @@ function inline(s: string): ReactNode {
 
 function TypingDots() {
   return (
-    <span className="inline-flex gap-1 py-1" aria-label="Sinchan is typing">
+    <span className="inline-flex gap-1 py-1" aria-label="Kharcha is typing">
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
