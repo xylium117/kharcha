@@ -1,0 +1,5 @@
+# Never upload local secrets – they're set with `vercel env add` instead.
+.env*
+!.env.example
+node_modules
+.next
