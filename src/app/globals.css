@@ -81,12 +81,29 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
 .num {
@@ -95,7 +112,6 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Soft blobs in the page background */
 .bg-blobs {
   background:
     radial-gradient(40rem 24rem at 110% -10%, color-mix(in srgb, var(--lavender) 35%, transparent), transparent 60%),

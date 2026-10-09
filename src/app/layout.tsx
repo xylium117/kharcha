@@ -24,16 +24,27 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-// Sets the theme before first paint so there's no light/dark flash.
-const themeScript = `(function(){try{var p=localStorage.getItem('pp-theme')||'system';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){document.documentElement.dataset.theme='light';}})();`;
+const clientInitScript = `(function(){
+  try{
+    var p=localStorage.getItem('pp-theme')||'system';
+    var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.theme=d?'dark':'light';
+  }catch(e){
+    document.documentElement.dataset.theme='light';
+  }
+  document.addEventListener('contextmenu',function(e){e.preventDefault();},false);
+})();`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${jakarta.variable} ${grotesk.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: clientInitScript }} />
       </head>
-      <body className="bg-blobs min-h-full">
+      <body
+        className="bg-blobs min-h-full"
+        onContextMenu={(e) => e.preventDefault()}
+      >
         <AppShell>{children}</AppShell>
         <Analytics />
       </body>
