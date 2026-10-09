@@ -7,6 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Track daily spending, stay on budget and ask Stash the owl before you buy.",
     start_url: "/",
     display: "standalone",
+    orientation: "portrait",
     background_color: "#fffbf5",
     theme_color: "#c8b6ff",
     icons: [

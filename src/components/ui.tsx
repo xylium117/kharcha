@@ -321,7 +321,7 @@ export function PageHeader({ title, subtitle, action }: { title: ReactNode; subt
 
 export function StatTile({ label, value, hint, tone }: { label: string; value: ReactNode; hint?: ReactNode; tone?: string }) {
   return (
-    <div className="rounded-2xl p-3" style={{ background: tone ?? "var(--bg-soft)" }}>
+    <div className="flex h-full flex-col rounded-2xl p-3" style={{ background: tone ?? "var(--bg-soft)" }}>
       <div className="text-xs font-semibold text-muted" style={tone ? { color: "#5b5675" } : undefined}>
         {label}
       </div>

@@ -271,11 +271,10 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Streaks */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 items-stretch gap-3">
         <StatTile label="Logging streak" value={`🔥 ${streaks.log}`} hint={streaks.log === 1 ? "day" : "days"} tone="#FFD6A5" />
         <StatTile label="Under-limit streak" value={`🐷 ${streaks.under}`} hint="days" tone="#B8F2E6" />
-        <Link href="/settings#badges" className="block transition hover:-translate-y-0.5">
+        <Link href="/settings#badges" className="block h-full transition hover:-translate-y-0.5">
           <StatTile label="Badges" value={`🏅 ${badgeCount}`} hint="collected" tone="#C8B6FF" />
         </Link>
       </div>
