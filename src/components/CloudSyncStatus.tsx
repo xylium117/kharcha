@@ -12,19 +12,19 @@ export function CloudSyncStatus() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-card p-3 shadow-soft">
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-card p-3 shadow-soft">
+        <div className="flex items-center gap-2.5">
           <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
             <Cloud size={16} />
           </div>
-          <div className="min-w-0 overflow-hidden">
+          <div className="min-w-0 flex-1">
             <div className="text-xs font-bold text-ink">Cloud Backup</div>
-            <div className="truncate text-[10px] text-muted">Sign in to sync across devices</div>
+            <div className="text-[10px] text-muted">Sync across devices</div>
           </div>
         </div>
         <button
           onClick={loginWithGoogle}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-accent px-2.5 py-1.5 text-xs font-bold text-white shadow-soft transition hover:opacity-90"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-accent py-1.5 text-xs font-bold text-white shadow-soft transition hover:opacity-90 active:scale-[0.99] dark:text-[#15142a]"
         >
           <LogIn size={13} />
           Sign in

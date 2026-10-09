@@ -62,8 +62,17 @@ export function Onboarding() {
       }
       // If data was pulled, db.settings now exists and the app re-renders past Onboarding automatically
     } catch (err: any) {
-      if (err?.code !== "auth/popup-closed-by-user") {
-        setRestoreError("Something went wrong. Try again.");
+      console.error("Restore from cloud error:", err);
+      if (err?.code === "auth/popup-closed-by-user") {
+        // User intentionally cancelled the login popup; do not show error
+      } else if (err?.code === "auth/unauthorized-domain") {
+        setRestoreError("Unauthorized domain: Add this domain (e.g. your Vercel URL) to Firebase Console > Authentication > Settings > Authorized domains.");
+      } else if (err?.code === "auth/popup-blocked") {
+        setRestoreError("Sign-in popup was blocked by your browser. Please allow popups for this site.");
+      } else if (err?.code === "permission-denied" || err?.message?.includes("Missing or insufficient permissions")) {
+        setRestoreError("Firestore permission denied. Check your Firestore Security Rules.");
+      } else {
+        setRestoreError(err?.message || "Something went wrong. Try again.");
       }
       setRestoring(false);
     }
