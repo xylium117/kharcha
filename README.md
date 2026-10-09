@@ -7,7 +7,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![Firebase](https://img.shields.io/badge/Firebase-13-FFA611?logo=firebase&logoColor=white)](https://firebase.google.com)
-[![PWA](https://img.shields.io/badge/PWA-Offline--Ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps)
+[![PWA](https://img.shields.io/badge/PWA-Installable-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps)
 [![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-black?logo=vercel)](https://vercel.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
@@ -15,7 +15,7 @@
 
 ## Overview
 
-**Kharcha** (Hindi: *expenditure*) is a privacy-first, offline-capable Progressive Web App that helps students track daily spending, visualise habits, and build better money discipline — without subscriptions, ads, or data harvesting.
+**Kharcha** (Hindi: *expenditure*) is a privacy-first Progressive Web App that helps students track daily spending, visualise habits, and build better money discipline — without subscriptions, ads, or data harvesting.
 
 All data is stored locally in the browser using IndexedDB (Dexie). Google account sync is optional and end-user controlled.
 
@@ -77,7 +77,7 @@ All data is stored locally in the browser using IndexedDB (Dexie). Google accoun
 ### 📱 Mobile-First PWA
 - Installable on Android and iOS (standalone display)
 - Portrait orientation lock
-- Offline-ready via Serwist/Workbox service worker (pre-caches all static assets)
+- Fast subsequent loads via Serwist/Workbox service worker (pre-caches all static assets)
 - TWA-compatible (`assetlinks.json` included for Play Store distribution)
 
 ---
