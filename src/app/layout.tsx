@@ -41,10 +41,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: clientInitScript }} />
       </head>
-      <body
-        className="bg-blobs min-h-full"
-        onContextMenu={(e) => e.preventDefault()}
-      >
+      <body className="bg-blobs min-h-full">
         <AppShell>{children}</AppShell>
         <Analytics />
       </body>
