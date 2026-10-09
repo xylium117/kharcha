@@ -29,6 +29,7 @@ import type { BudgetSummary } from "@/lib/budget";
 import type { Expense } from "@/lib/types";
 import { AddExpenseSheet, type AddTab } from "./AddExpenseSheet";
 import { CloudSyncStatus } from "./CloudSyncStatus";
+import { InstallAppPrompt } from "./InstallAppPrompt";
 import { Mascot } from "./Mascot";
 import { Onboarding } from "./Onboarding";
 import { Sheet, cn } from "./ui";
@@ -223,6 +224,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         prefill={add.prefill}
         onClose={() => setAdd((a) => ({ ...a, open: false }))}
       />
+
+      <InstallAppPrompt />
 
       {/* Toasts */}
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-6">

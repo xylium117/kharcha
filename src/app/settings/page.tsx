@@ -2,7 +2,7 @@
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowUp, Download, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Download, Plus, Smartphone, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
@@ -639,6 +639,13 @@ function DataCard({ settings }: { settings: Settings }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
+        <a
+          href="/Kharcha.apk"
+          download="Kharcha.apk"
+          className="inline-flex h-11 items-center gap-2 rounded-2xl bg-accent px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] dark:text-[#15142a]"
+        >
+          <Smartphone size={16} /> Install App (.apk)
+        </a>
         <Button onClick={doExport}>
           <Download size={16} /> Export backup
         </Button>
