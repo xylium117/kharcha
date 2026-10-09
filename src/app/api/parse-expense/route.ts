@@ -1,6 +1,13 @@
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { z } from "zod";
-import { aiProvider, errorResponse, geminiJSON, getClient, guard, huggingfaceJSON, localJSON, PARSER_MODEL } from "@/lib/server/ai";
+﻿import { z } from "zod";
+import {
+  aiProvider,
+  errorResponse,
+  geminiJSON,
+  guard,
+  groqJSON,
+  openrouterJSON,
+  parseExpenseBuiltin,
+} from "@/lib/server/ai";
 
 const Body = z.object({
   text: z.string().min(1).max(500),
@@ -36,27 +43,31 @@ Defaults when not stated: paymentMode UPI, date today, time null.
 Tag: "need" for essentials (meals, travel to college, notes, medicine), "want" for treats and nice-to-haves, "waste" when the note signals regret or junk ("unnecessary", "regret", "impulse", late-night junk).`;
 
   try {
-    let result: z.infer<typeof Schema> | null;
-    const provider = aiProvider();
-    if (provider === "huggingface") {
-      result = await huggingfaceJSON(system, text, Schema);
-    } else if (provider === "gemini") {
-      result = await geminiJSON(system, text, Schema);
-    } else if (provider === "local") {
-      result = await localJSON(system, text, Schema);
-    } else {
-      const response = await getClient().messages.parse({
-        model: PARSER_MODEL,
-        max_tokens: 1024,
-        system,
-        messages: [{ role: "user", content: text }],
-        output_config: { format: zodOutputFormat(Schema) },
-      });
-      result = response.parsed_output;
+    // Cascade: try each AI provider, fall back to offline regex parser last
+    const startProvider = aiProvider();
+    const providers = [
+      { name: "gemini",     fn: () => geminiJSON(system, text, Schema) },
+      { name: "groq",       fn: () => groqJSON(system, text, Schema) },
+      { name: "openrouter", fn: () => openrouterJSON(system, text, Schema) },
+    ];
+    const idx = providers.findIndex((p) => p.name === startProvider);
+    const sorted = idx > 0 ? [...providers.slice(idx), ...providers.slice(0, idx)] : providers;
+
+    let result: z.infer<typeof Schema> | null = null;
+    for (const provider of sorted) {
+      try {
+        result = await provider.fn();
+        if (result) break;
+      } catch (err) {
+        console.warn(`[Kharcha] parse-expense ${provider.name} failed:`, (err as Error).message);
+      }
     }
+
+    // Final fallback: offline regex parser (always works, no AI needed)
     if (!result) {
-      return Response.json({ error: "Couldn't understand that – try e.g. 'momos 120 at Dey's stall'." }, { status: 422 });
+      result = parseExpenseBuiltin(text, categories, today, weekday, time);
     }
+
     return Response.json(result);
   } catch (err) {
     return errorResponse(err);

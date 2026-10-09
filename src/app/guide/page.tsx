@@ -137,16 +137,6 @@ function Guide() {
         }
       />
 
-      {aiOnline === false && (
-        <div className="mb-4 rounded-2xl border border-line bg-card p-4 text-sm">
-          <p className="font-semibold">🦉 Stash is offline</p>
-          <p className="mt-1 text-muted">
-            Create a file <code className="rounded bg-bg-soft px-1">.env.local</code> in the app folder with{" "}
-            <code className="rounded bg-bg-soft px-1">GEMINI_API_KEY=your-key</code> (free from aistudio.google.com), then restart <code>npm run dev</code>. Everything
-            else in the app works without it.
-          </p>
-        </div>
-      )}
 
       {needPasscode && (
         <form

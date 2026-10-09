@@ -13,8 +13,7 @@ const SEASON_LABEL = {
 
 /**
  * Plain-text summary of the user's finances for the AI guide. Reads straight from the local database.
- * `trimmed` (used with Gemini's free tier) leaves out anything personal beyond numbers: no name,
- * item titles, places, notes or friends' names – only amounts, categories, tags, dates and goal numbers.
+ * `trimmed` leaves out anything personal beyond numbers: no name, item titles, places, notes or friends' names.
  */
 export async function buildSnapshot(now = new Date(), { trimmed = false } = {}): Promise<string> {
   const [settings, expenses, recurring, goals, contributions, ious, categories, wishlist, income] = await Promise.all([

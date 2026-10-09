@@ -156,11 +156,13 @@ export function Segmented<T extends string>({
   options,
   onChange,
   className,
+  size = "md",
 }: {
   value: T;
   options: { value: T; label: ReactNode }[];
   onChange: (v: T) => void;
   className?: string;
+  size?: "sm" | "md";
 }) {
   return (
     <div className={cn("inline-flex rounded-2xl bg-bg-soft p-1", className)} role="tablist">
@@ -171,7 +173,8 @@ export function Segmented<T extends string>({
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "relative h-9 flex-1 rounded-xl px-3 text-sm font-semibold transition",
+            "relative flex-1 rounded-xl font-semibold transition",
+            size === "sm" ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm",
             value === o.value ? "text-ink" : "text-muted hover:text-ink",
           )}
         >

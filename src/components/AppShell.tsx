@@ -28,6 +28,7 @@ import { postDueRecurring } from "@/lib/recurring";
 import type { BudgetSummary } from "@/lib/budget";
 import type { Expense } from "@/lib/types";
 import { AddExpenseSheet, type AddTab } from "./AddExpenseSheet";
+import { CloudSyncStatus } from "./CloudSyncStatus";
 import { Mascot } from "./Mascot";
 import { Onboarding } from "./Onboarding";
 import { Sheet, cn } from "./ui";
@@ -75,7 +76,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [add, setAdd] = useState<{ open: boolean; nonce: number; tab?: AddTab; edit?: Expense; prefill?: Partial<Expense> }>({ open: false, nonce: 0 });
   const [moreOpen, setMoreOpen] = useState(false);
-  const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const toastId = useRef(0);
 
   const toast = useCallback((t: Omit<ToastData, "id">) => {
@@ -86,7 +86,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const openAdd = useCallback<UIContextValue["openAdd"]>((opts) => setAdd((a) => ({ open: true, nonce: a.nonce + 1, ...opts })), []);
 
-  // Post recurring expenses once the app is set up.
   const ready = !!settings;
   useEffect(() => {
     if (!ready) return;
@@ -103,25 +102,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Chrome (Android) fires this when Kharcha can be installed; offer it unless dismissed before.
-  useEffect(() => {
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      try {
-        if (localStorage.getItem("pp-install-dismissed")) return;
-      } catch {}
-      setInstallEvt(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => setInstallEvt(null);
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
-
-  // Ask the browser not to clear our data when space runs low (granted silently for installed apps).
   useEffect(() => {
     if (!ready) return;
     navigator.storage
@@ -160,39 +140,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Plus size={18} /> Add expense
           </button>
+          <div className="mt-auto pt-4">
+            <CloudSyncStatus />
+          </div>
         </aside>
 
         <main className="min-w-0 flex-1 px-4 pb-32 pt-5 sm:px-6 md:pb-12 md:pt-8">
-          {installEvt && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm">
-              <span className="text-xl">📲</span>
-              <span className="min-w-0 flex-1">
-                <b>Install Kharcha</b> – opens like an app from your home screen, and your data is safer.
-              </span>
-              <span className="flex gap-2">
-                <button
-                  onClick={async () => {
-                    await installEvt.prompt();
-                    setInstallEvt(null);
-                  }}
-                  className="h-9 rounded-full bg-accent px-3 text-xs font-bold text-white dark:text-[#15142a]"
-                >
-                  Install
-                </button>
-                <button
-                  onClick={() => {
-                    try {
-                      localStorage.setItem("pp-install-dismissed", "1");
-                    } catch {}
-                    setInstallEvt(null);
-                  }}
-                  className="h-9 rounded-full px-3 text-xs font-bold"
-                >
-                  Not now
-                </button>
-              </span>
-            </div>
-          )}
           {children}
         </main>
       </div>
@@ -229,6 +182,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
 
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
+        <div className="mb-4">
+          <CloudSyncStatus />
+        </div>
         <div className="grid grid-cols-3 gap-2">
           {NAV.filter((n) => !MOBILE_MAIN.includes(n.href)).map((n) => (
             <Link
@@ -369,10 +325,4 @@ function useBadgeWatcher(toast: UIContextValue["toast"]) {
       });
     });
   }, [data, toast]);
-}
-
-/** Chrome's install prompt event (not in TypeScript's DOM types yet). */
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }

@@ -5,8 +5,8 @@ import type { PaymentMode, Tag } from "./types";
 
 export interface AIStatus {
   ai: boolean;
-  provider: "gemini" | "claude" | null;
-  /** Send only numbers to the AI (Gemini free tier). */
+  provider: "builtin" | "gemini" | "groq" | "openrouter" | "huggingface" | "claude" | "local" | null;
+  /** Send trimmed numbers to external AI if privacy is requested. */
   trimSnapshot: boolean;
   passcodeRequired: boolean;
 }
@@ -15,7 +15,7 @@ let statusCache: Promise<AIStatus> | null = null;
 export function getAIStatus(): Promise<AIStatus> {
   statusCache ??= fetch("/api/status")
     .then((r) => r.json() as Promise<AIStatus>)
-    .catch((): AIStatus => ({ ai: false, provider: null, trimSnapshot: true, passcodeRequired: false }));
+    .catch((): AIStatus => ({ ai: true, provider: "builtin", trimSnapshot: false, passcodeRequired: false }));
   return statusCache;
 }
 

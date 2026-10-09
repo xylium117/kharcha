@@ -34,26 +34,26 @@ npm run dev
 
 Open http://localhost:3000. On first launch you can start fresh or explore with 80 days of demo data.
 
-## Turn on Stash (AI)
+## Stash (AI Financial Mentor)
 
+Stash works **100% offline out-of-the-box** using a built-in intelligent engine with zero setup or API keys required. All natural-language expense parsing, chat advice, and weekly reports work directly on your device.
+
+If you optionally want to use an external cloud LLM:
 1. Copy `.env.example` to `.env.local`.
-2. Set **one** key:
-   - **Free (Hugging Face):** `HF_TOKEN=...` from https://huggingface.co/settings/tokens (runs `Qwen/Qwen2.5-7B-Instruct` on Hugging Face Serverless API, no local GPU needed).
-   - **Free (Gemini):** `GEMINI_API_KEY=...` from https://aistudio.google.com/apikey (Google account, no card).
-   - **Paid:** `ANTHROPIC_API_KEY=...` from https://console.anthropic.com/.
+2. Set your preferred provider:
+   - **Hugging Face (free):** `HF_TOKEN=...` from https://huggingface.co/settings/tokens (runs `Qwen/Qwen2.5-7B-Instruct`).
+   - **Anthropic Claude (paid):** `ANTHROPIC_API_KEY=...` from https://console.anthropic.com/.
    - **Self-hosted:** `LOCAL_LLM_URL=http://localhost:11434` (Ollama or `llm/serve.py`).
 3. Restart `npm run dev`.
 
 | Provider | Chat + weekly report | "Just type it" parsing |
 |---|---|---|
+| Built-in (offline, 0 config) | Fast local finance-reasoning engine | Rule-based NLP parser |
 | Hugging Face (free; open weights) | `Qwen/Qwen2.5-7B-Instruct` (`HF_MODEL`) | same |
-| Gemini (free) | `gemini-flash-latest`, an alias for Google's current Flash model (`GEMINI_MODEL`) | same |
 | Claude (paid) | `claude-sonnet-5-5` (`GURU_MODEL`) | `claude-haiku-4-5` (`PARSER_MODEL`) |
 | Local / Self-hosted | Fine-tuned Stash / Ollama (`LOCAL_LLM_URL`) | same |
 
-`AI_PROVIDER=huggingface|gemini|claude|local` forces one when multiple keys are set. On Gemini's free tier, Google may use prompts to improve its products, so the app sends a **trimmed** summary: amounts, categories, tags, dates and goal numbers only. Hugging Face, Claude, and local models receive the full snapshot.
-
-The key stays on the server and is never sent to the browser. Without a key, everything except the chat and "just type it" keeps working, and the weekly report uses a rule-based version.
+`AI_PROVIDER=builtin|huggingface|claude|local` forces a specific engine.
 
 ## Put it online (free) and install on Android
 
@@ -63,9 +63,8 @@ The key stays on the server and is never sent to the browser. Without a key, eve
    npx vercel login
    npx vercel link
    ```
-3. Add the secrets (you'll be prompted to type each value):
+3. (Optional) Add your passcode or custom token:
    ```bash
-   npx vercel env add GEMINI_API_KEY production
    npx vercel env add APP_PASSCODE production
    ```
 4. Deploy: `npx vercel --prod`. Vercel prints the app's address (`https://….vercel.app`).

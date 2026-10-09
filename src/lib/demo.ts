@@ -151,3 +151,89 @@ export async function loadDemoData(name = "Student", budget = 6000): Promise<voi
     ]);
   });
 }
+
+/**
+ * ⚠️  DEMO ONLY — NOT FOR PRODUCTION.
+ * Seeds exactly 5 days of realistic expenses so the Stats Lab has enough
+ * data to show all its charts. Clears any existing data first.
+ */
+export async function loadShortDemoData(name = "Demo Student", budget = 6000): Promise<void> {
+  await clearAll();
+  const rand = mulberry32(99);
+  const now = new Date();
+  const today = startOfDay(now);
+
+  const pick = (weekend: boolean) => {
+    const weights = TEMPLATES.map((t) => t.weight * (weekend ? (t.weekendBoost ?? 1) : 1));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = rand() * total;
+    for (let i = 0; i < TEMPLATES.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return TEMPLATES[i];
+    }
+    return TEMPLATES[0];
+  };
+
+  const expenses: Expense[] = [];
+  for (let offset = 30; offset >= 0; offset--) {
+    const d = addDays(today, -offset);
+    const isToday = offset === 0;
+    const weekend = d.getDay() === 0 || d.getDay() === 6;
+    const count = isToday ? 2 : weekend ? 2 + Math.floor(rand() * 3) : 3 + Math.floor(rand() * 2);
+    for (let i = 0; i < count; i++) {
+      const t = pick(weekend);
+      const hour = t.hours[0] + Math.floor(rand() * (t.hours[1] - t.hours[0] + 1));
+      const ts = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, Math.floor(rand() * 60)).getTime();
+      if (ts > now.getTime()) continue;
+      const amount = Math.round((t.min + rand() * (t.max - t.min)) / 5) * 5;
+      expenses.push({
+        id: uid(), amount, categoryId: t.cat, title: t.title,
+        place: t.place, paymentMode: t.pay, tag: t.tag, ts, source: "form",
+      });
+    }
+  }
+
+  // Realistic outliers to show Stats Lab Tukey fences & Welch t-test
+  const splurge = addDays(today, -15);
+  expenses.push({
+    id: uid(), amount: 1250, categoryId: "shopping", title: "Sneakers (semester sale)", place: "Puma store",
+    paymentMode: "Card", tag: "want", ts: new Date(splurge.getFullYear(), splurge.getMonth(), splurge.getDate(), 18, 30).getTime(),
+    source: "form", mood: "😄",
+  });
+  const party = addDays(today, -7);
+  expenses.push({
+    id: uid(), amount: 750, categoryId: "food", title: "Weekend group dinner", place: "Biryani House",
+    paymentMode: "UPI", tag: "want", ts: new Date(party.getFullYear(), party.getMonth(), party.getDate(), 20, 30).getTime(),
+    source: "form", mood: "🎉",
+  });
+
+  const settings = defaultSettings(name, budget);
+  settings.createdAt = addDays(today, -30).getTime();
+  settings.statsVisits = 0;
+
+  const g1 = uid();
+  await db.transaction("rw", [db.settings, db.categories, db.quickButtons, db.expenses, db.recurring, db.goals, db.goalContributions, db.ious, db.wishlist], async () => {
+    await db.settings.put(settings);
+    await db.categories.bulkAdd(DEFAULT_CATEGORIES);
+    await db.quickButtons.bulkAdd(DEFAULT_QUICK_BUTTONS);
+    await db.expenses.bulkAdd(expenses);
+    await db.recurring.bulkAdd([
+      { id: uid(), title: "Jio recharge", amount: 299, categoryId: "mobile", frequency: "monthly", nextDate: dayKey(addDays(today, 5)), active: true },
+      { id: uid(), title: "Spotify student", amount: 59, categoryId: "fun", frequency: "monthly", nextDate: dayKey(addDays(today, 12)), active: true },
+    ]);
+    await db.goals.bulkAdd([
+      { id: g1, title: "New headphones", emoji: "🎧", target: 2500, deadline: dayKey(addDays(today, 60)), createdAt: addDays(today, -20).getTime() },
+    ]);
+    await db.goalContributions.bulkAdd([
+      { id: uid(), goalId: g1, amount: 500, ts: addDays(today, -18).getTime() },
+      { id: uid(), goalId: g1, amount: 300, ts: addDays(today, -5).getTime() },
+    ]);
+    await db.ious.bulkAdd([
+      { id: uid(), person: "Rahul", amount: 120, direction: "theyOwe", reason: "Canteen lunch", ts: addDays(today, -3).getTime(), settled: false },
+      { id: uid(), person: "Priya", amount: 80, direction: "iOwe", reason: "Notes photocopy", ts: addDays(today, -10).getTime(), settled: true, settledAt: addDays(today, -2).getTime() },
+    ]);
+    await db.wishlist.bulkAdd([
+      { id: uid(), title: "Oversized hoodie", price: 899, categoryId: "shopping", addedAt: addDays(today, -4).getTime(), status: "waiting" },
+    ]);
+  });
+}

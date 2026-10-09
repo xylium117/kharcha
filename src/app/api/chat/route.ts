@@ -1,6 +1,13 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { aiProvider, errorResponse, fallbackParams, geminiChat, getClient, guard, GURU_MODEL, GURU_SYSTEM, huggingfaceChat, localChat } from "@/lib/server/ai";
+import {
+  aiProvider,
+  errorResponse,
+  geminiChat,
+  groqChat,
+  guard,
+  GURU_SYSTEM,
+  openrouterChat,
+} from "@/lib/server/ai";
 
 const Body = z.object({
   snapshot: z.string().max(20_000),
@@ -12,22 +19,51 @@ const Body = z.object({
 
 type Turn = { role: "user" | "assistant"; content: string };
 
-/** Claude's reply as text chunks; refusals and cut-offs get a short note. */
-async function* claudeChat(history: Turn[]): AsyncGenerator<string> {
-  const stream = getClient().beta.messages.stream({
-    model: GURU_MODEL,
-    max_tokens: 4000,
-    ...fallbackParams(GURU_MODEL),
-    output_config: { effort: "low" },
-    system: [{ type: "text", text: GURU_SYSTEM, cache_control: { type: "ephemeral" } }],
-    messages: history as Anthropic.Beta.BetaMessageParam[],
-  });
-  for await (const event of stream) {
-    if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
+const PROVIDER_TIMEOUT_MS = 5000; // skip provider if first chunk takes >5s
+
+/** Race a promise against a timeout. Rejects with TimeoutError if exceeded. */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
+/** Try each provider in order; skip to next on error or timeout. */
+async function* cascadeChat(
+  turns: Turn[],
+  startProvider: string,
+): AsyncGenerator<string> {
+  const order: Array<{ name: string; fn: () => AsyncGenerator<string> }> = [
+    { name: "gemini",     fn: () => geminiChat(GURU_SYSTEM, turns) },
+    { name: "groq",       fn: () => groqChat(GURU_SYSTEM, turns) },
+    { name: "openrouter", fn: () => openrouterChat(GURU_SYSTEM, turns) },
+  ];
+
+  // Put configured provider first
+  const idx = order.findIndex((p) => p.name === startProvider);
+  const sorted = idx > 0 ? [...order.slice(idx), ...order.slice(0, idx)] : order;
+
+  let lastErr: unknown;
+  for (const provider of sorted) {
+    const gen = provider.fn();
+    try {
+      // Timeout only on the first chunk — after that stream freely
+      const first = await withTimeout(gen.next(), PROVIDER_TIMEOUT_MS, provider.name);
+      if (!first.done) {
+        yield first.value;
+        yield* gen;
+        return;
+      }
+    } catch (err) {
+      console.warn(`[Kharcha AI] ${provider.name} skipped (${(err as Error).message}), trying next…`);
+      lastErr = err;
+      try { await gen.return(undefined); } catch { /* ignore */ }
+    }
   }
-  const final = await stream.finalMessage();
-  if (final.stop_reason === "refusal") yield "\n\nSorry, I can't help with that one. Ask me something about your money! 🦉";
-  else if (final.stop_reason === "max_tokens") yield "…";
+  throw lastErr ?? new Error("All AI providers failed");
 }
 
 export async function POST(req: Request) {
@@ -50,30 +86,19 @@ export async function POST(req: Request) {
       : m,
   );
 
-  const provider = aiProvider();
-  const chunks =
-    provider === "huggingface" ? huggingfaceChat(GURU_SYSTEM, turns)
-    : provider === "gemini" ? geminiChat(GURU_SYSTEM, turns)
-    : provider === "local" ? localChat(GURU_SYSTEM, turns)
-    : claudeChat(turns);
-
-  // Pull the first chunk before answering, so setup errors (bad key, rate limit) become proper error responses.
-  let first: IteratorResult<string>;
-  try {
-    first = await chunks.next();
-  } catch (err) {
-    return errorResponse(err);
-  }
+  const startProvider = aiProvider();
+  const chunks = cascadeChat(turns, startProvider);
 
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
-        if (!first.done) controller.enqueue(encoder.encode(first.value));
-        for await (const text of chunks) controller.enqueue(encoder.encode(text));
+        for await (const text of chunks) {
+          controller.enqueue(encoder.encode(text));
+        }
       } catch (err) {
-        const { error } = (await errorResponse(err).json()) as { error: string };
-        controller.enqueue(encoder.encode(`\n\n⚠️ ${error}`));
+        const msg = err instanceof Error ? err.message : "All AI providers are unavailable right now. Please try again in a moment.";
+        controller.enqueue(encoder.encode(`\n\nSorry, Stash is having trouble connecting to AI right now. ${msg}`));
       } finally {
         controller.close();
       }

@@ -2,36 +2,71 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { signInWithPopup } from "firebase/auth";
+import { collection, getDocs } from "firebase/firestore";
+import { auth, googleProvider, firestore } from "@/lib/firebase";
 import { celebrate } from "@/lib/confetti";
-import { db } from "@/lib/db";
+import { db, TABLE_NAMES } from "@/lib/db";
 import { DEFAULT_CATEGORIES, DEFAULT_QUICK_BUTTONS, defaultSettings } from "@/lib/defaults";
-import { loadDemoData } from "@/lib/demo";
 import { Mascot } from "./Mascot";
 import { Button, Input, Label } from "./ui";
+import { CloudDownload, Loader2 } from "lucide-react";
 
 export function Onboarding() {
   const [name, setName] = useState("");
   const [budget, setBudget] = useState("6000");
   const [startDay, setStartDay] = useState("1");
   const [busy, setBusy] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState("");
   const amount = Number(budget);
   const valid = name.trim().length > 0 && amount > 0;
 
-  async function start(demo: boolean) {
+  async function start() {
     if (!valid) return;
     setBusy(true);
-    if (demo) {
-      await loadDemoData(name.trim(), amount);
-    } else {
-      const s = defaultSettings(name.trim(), amount);
-      s.monthStartDay = Math.min(28, Math.max(1, Number(startDay) || 1));
-      await db.transaction("rw", db.settings, db.categories, db.quickButtons, async () => {
-        await db.categories.bulkPut(DEFAULT_CATEGORIES);
-        await db.quickButtons.bulkPut(DEFAULT_QUICK_BUTTONS);
-        await db.settings.put(s);
-      });
-    }
+    const s = defaultSettings(name.trim(), amount);
+    s.monthStartDay = Math.min(28, Math.max(1, Number(startDay) || 1));
+    await db.transaction("rw", db.settings, db.categories, db.quickButtons, async () => {
+      await db.categories.bulkPut(DEFAULT_CATEGORIES);
+      await db.quickButtons.bulkPut(DEFAULT_QUICK_BUTTONS);
+      await db.settings.put(s);
+    });
     celebrate(true);
+  }
+
+  async function restoreFromCloud() {
+    setRestoring(true);
+    setRestoreError("");
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const uid = result.user.uid;
+
+      let totalPulled = 0;
+      for (const table of TABLE_NAMES) {
+        const colRef = collection(firestore, "users", uid, table);
+        const snapshot = await getDocs(colRef);
+        if (!snapshot.empty) {
+          const items = snapshot.docs.map((d) => d.data());
+          const dexieTable = (db as any)[table];
+          if (dexieTable) {
+            await dexieTable.bulkPut(items);
+            totalPulled += items.length;
+          }
+        }
+      }
+
+      if (totalPulled === 0) {
+        setRestoreError("No cloud data found for this account.");
+        setRestoring(false);
+      }
+      // If data was pulled, db.settings now exists and the app re-renders past Onboarding automatically
+    } catch (err: any) {
+      if (err?.code !== "auth/popup-closed-by-user") {
+        setRestoreError("Something went wrong. Try again.");
+      }
+      setRestoring(false);
+    }
   }
 
   return (
@@ -50,11 +85,36 @@ export function Onboarding() {
           </p>
         </div>
 
+        {/* Restore from cloud */}
+        <div className="mt-5">
+          <button
+            onClick={restoreFromCloud}
+            disabled={restoring}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-accent/30 bg-accent/8 px-4 py-3 text-sm font-semibold text-accent transition hover:bg-accent/15 disabled:opacity-60"
+          >
+            {restoring ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <CloudDownload size={16} />
+            )}
+            {restoring ? "Restoring your data…" : "Restore from cloud (returning user)"}
+          </button>
+          {restoreError && (
+            <p className="mt-2 text-center text-xs text-red-500">{restoreError}</p>
+          )}
+        </div>
+
+        <div className="my-5 flex items-center gap-3 text-xs text-muted">
+          <div className="h-px flex-1 bg-line" />
+          or start fresh
+          <div className="h-px flex-1 bg-line" />
+        </div>
+
         <form
-          className="mt-6 space-y-4"
+          className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            start(false);
+            start();
           }}
         >
           <div>
@@ -91,17 +151,9 @@ export function Onboarding() {
           <Button type="submit" size="lg" className="w-full" disabled={!valid || busy}>
             Start fresh ✨
           </Button>
-          <Button type="button" variant="soft" className="w-full" disabled={!valid || busy} onClick={() => start(true)}>
-            Explore with 80 days of demo data
-          </Button>
           <div className="rounded-2xl bg-bg-soft p-3 text-xs leading-relaxed text-muted">
             <p>
-              🔒 <b className="text-ink">Your expenses stay on this phone.</b> Nobody else (not even the person who shared this app) can see
-              them. Back up from Settings now and then.
-            </p>
-            <p className="mt-1.5">
-              🦉 When you ask me something, a summary of your <b className="text-ink">numbers only</b> (amounts, categories, goals – no names,
-              shops or notes) goes to Google&apos;s free Gemini AI, which may use it to improve its products.
+              🔒 <b className="text-ink">Your data stays private.</b> Sign in with Google to back up and restore across devices any time.
             </p>
           </div>
         </form>

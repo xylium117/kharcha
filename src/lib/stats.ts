@@ -11,6 +11,8 @@ export interface Describe {
   mean: number;
   median: number;
   sd: number;
+  se: number;
+  ci95: [number, number];
   min: number;
   max: number;
   q1: number;
@@ -18,6 +20,22 @@ export interface Describe {
   iqr: number;
   cv: number;
   skewness: number;
+  kurtosis: number;
+  gini: number;
+}
+
+export function giniCoefficient(values: number[]): number {
+  if (values.length <= 1) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const n = sorted.length;
+  const sumVal = sorted.reduce((a, b) => a + b, 0);
+  if (sumVal === 0) return 0;
+  let cum = 0;
+  for (let i = 0; i < n; i++) {
+    cum += (i + 1) * sorted[i];
+  }
+  const g = (2 * cum) / (n * sumVal) - (n + 1) / n;
+  return Math.max(0, Math.min(1, g));
 }
 
 export function describe(values: number[]): Describe | null {
@@ -26,18 +44,30 @@ export function describe(values: number[]): Describe | null {
   const sorted = [...values].sort((a, b) => a - b);
   const mean = ssMean(values);
   const sd = n > 1 ? sampleStandardDeviation(values) : 0;
+  const se = n > 0 ? sd / Math.sqrt(n) : 0;
+  const crit = n > 1 ? tCritical(n - 1, 0.05) : 1.96;
+  const ci95: [number, number] = [Math.max(0, mean - crit * se), mean + crit * se];
   const q1 = quantileSorted(sorted, 0.25);
   const q3 = quantileSorted(sorted, 0.75);
   let skewness = 0;
+  let kurtosis = 0;
   if (n > 2 && sd > 0) {
     const m3 = values.reduce((s, x) => s + ((x - mean) / sd) ** 3, 0);
     skewness = (n / ((n - 1) * (n - 2))) * m3;
+  }
+  if (n > 3 && sd > 0) {
+    const m4 = values.reduce((s, x) => s + ((x - mean) / sd) ** 4, 0);
+    kurtosis =
+      (n * (n + 1) * m4) / ((n - 1) * (n - 2) * (n - 3)) -
+      (3 * (n - 1) ** 2) / ((n - 2) * (n - 3));
   }
   return {
     n,
     mean,
     median: ssMedian(values),
     sd,
+    se,
+    ci95,
     min: sorted[0],
     max: sorted[n - 1],
     q1,
@@ -45,6 +75,8 @@ export function describe(values: number[]): Describe | null {
     iqr: q3 - q1,
     cv: mean > 0 ? sd / mean : 0,
     skewness,
+    kurtosis,
+    gini: giniCoefficient(values),
   };
 }
 
@@ -54,7 +86,6 @@ export interface Outlier<T> {
   z: number;
 }
 
-/** Items whose z-score is at least `threshold` (high spenders only). */
 export function zOutliers<T>(items: T[], value: (t: T) => number, threshold = 2): Outlier<T>[] {
   const vals = items.map(value);
   if (vals.length < 3) return [];
@@ -67,15 +98,11 @@ export function zOutliers<T>(items: T[], value: (t: T) => number, threshold = 2)
     .sort((a, b) => b.z - a.z);
 }
 
-/** Box-plot fences (Tukey). */
 export function tukeyFences(d: Describe): { lower: number; upper: number } {
   return { lower: d.q1 - 1.5 * d.iqr, upper: d.q3 + 1.5 * d.iqr };
 }
 
-// ---------- t distribution ----------
-
 function logGamma(x: number): number {
-  // Lanczos approximation
   const g = 7;
   const c = [
     0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313,
@@ -124,7 +151,6 @@ function betacf(a: number, b: number, x: number): number {
   return h;
 }
 
-/** Regularized incomplete beta I_x(a, b). */
 export function incBeta(x: number, a: number, b: number): number {
   if (x <= 0) return 0;
   if (x >= 1) return 1;
@@ -135,13 +161,11 @@ export function incBeta(x: number, a: number, b: number): number {
   return 1 - (bt * betacf(b, a, 1 - x)) / b;
 }
 
-/** Two-sided p-value for a t statistic with df degrees of freedom. */
 export function tTwoSidedP(t: number, df: number): number {
   if (!isFinite(t)) return 0;
   return incBeta(df / (df + t * t), df / 2, 0.5);
 }
 
-/** Critical t value for a two-sided interval (bisection). */
 export function tCritical(df: number, alpha = 0.05): number {
   let lo = 0;
   let hi = 100;
@@ -156,12 +180,17 @@ export function tCritical(df: number, alpha = 0.05): number {
 export interface WelchResult {
   meanA: number;
   meanB: number;
+  sdA: number;
+  sdB: number;
   diff: number;
   t: number;
   df: number;
   p: number;
   nA: number;
   nB: number;
+  cohensD: number;
+  significant05: boolean;
+  significant01: boolean;
 }
 
 export function welchTTest(a: number[], b: number[]): WelchResult | null {
@@ -170,16 +199,51 @@ export function welchTTest(a: number[], b: number[]): WelchResult | null {
   const mB = ssMean(b);
   const vA = sampleStandardDeviation(a) ** 2;
   const vB = sampleStandardDeviation(b) ** 2;
+  const sdA = Math.sqrt(vA);
+  const sdB = Math.sqrt(vB);
   const seA = vA / a.length;
   const seB = vB / b.length;
   const se = Math.sqrt(seA + seB);
-  if (se === 0) return { meanA: mA, meanB: mB, diff: mA - mB, t: 0, df: a.length + b.length - 2, p: 1, nA: a.length, nB: b.length };
+  if (se === 0) {
+    return {
+      meanA: mA,
+      meanB: mB,
+      sdA,
+      sdB,
+      diff: mA - mB,
+      t: 0,
+      df: a.length + b.length - 2,
+      p: 1,
+      nA: a.length,
+      nB: b.length,
+      cohensD: 0,
+      significant05: false,
+      significant01: false,
+    };
+  }
   const t = (mA - mB) / se;
   const df = (seA + seB) ** 2 / (seA ** 2 / (a.length - 1) + seB ** 2 / (b.length - 1));
-  return { meanA: mA, meanB: mB, diff: mA - mB, t, df, p: tTwoSidedP(t, df), nA: a.length, nB: b.length };
+  const p = tTwoSidedP(t, df);
+  const pooledSd = Math.sqrt(
+    ((a.length - 1) * vA + (b.length - 1) * vB) / Math.max(1, a.length + b.length - 2),
+  );
+  const cohensD = pooledSd > 0 ? (mA - mB) / pooledSd : 0;
+  return {
+    meanA: mA,
+    meanB: mB,
+    sdA,
+    sdB,
+    diff: mA - mB,
+    t,
+    df,
+    p,
+    nA: a.length,
+    nB: b.length,
+    cohensD,
+    significant05: p < 0.05,
+    significant01: p < 0.01,
+  };
 }
-
-// ---------- histogram ----------
 
 export interface Bin {
   x0: number;
@@ -195,7 +259,6 @@ export function histogram(values: number[], maxBins = 12): Bin[] {
   const max = sorted[sorted.length - 1];
   if (max === min) return [{ x0: min, x1: max, count: values.length, label: `${Math.round(min)}` }];
   const iqr = quantileSorted(sorted, 0.75) - quantileSorted(sorted, 0.25);
-  // Freedman–Diaconis, falling back to Sturges
   let width = iqr > 0 ? (2 * iqr) / Math.cbrt(values.length) : 0;
   let bins = width > 0 ? Math.ceil((max - min) / width) : Math.ceil(Math.log2(values.length) + 1);
   bins = Math.min(maxBins, Math.max(4, bins));
@@ -219,36 +282,21 @@ function niceStep(raw: number): number {
   return nice * p;
 }
 
-// ---------- forecast ----------
-
 export interface Forecast {
-  /** Projection assuming daily spends are i.i.d. with the observed mean. */
   expected: number;
   lower: number;
   upper: number;
-  /** Projection using the last-7-day moving average. */
   movingAvg: number;
-  /** Linear trend in daily spend (₹ per day, per day). */
   trendSlope: number;
+  rSquared: number;
   daysObserved: number;
   daysRemaining: number;
-  /** Standard error of the projected total. */
   se: number;
-  /** Mean daily spend used for the projection. */
   mu: number;
-  /** Projection and 95% interval j days after today. */
   at: (j: number) => { expected: number; lower: number; upper: number };
-  /** How many sample days were capped at the Tukey upper fence. */
   capped: number;
 }
 
-/**
- * @param dailySoFar daily totals of completed days in this period (today excluded), recurring bills excluded
- * @param spentSoFar total spent so far including today
- * @param daysRemaining days left after today
- * @param historyDaily recent daily totals before this period, used to pad a young period
- * @param knownUpcoming bills already scheduled for the rest of the period (added, not modelled)
- */
 export function forecastPeriod(
   dailySoFar: number[],
   spentSoFar: number,
@@ -256,11 +304,9 @@ export function forecastPeriod(
   historyDaily: number[] = [],
   knownUpcoming = 0,
 ): Forecast | null {
-  // Use this period's days, padded with recent history when the period is young.
   const raw = dailySoFar.length >= 7 ? dailySoFar : [...historyDaily.slice(-(14 - dailySoFar.length)), ...dailySoFar];
   const n = raw.length;
   if (n < 3) return null;
-  // Winsorize: cap splurge days at Q3 + 1.5·IQR so one outlier doesn't drive the whole projection.
   const sorted = [...raw].sort((a, b) => a - b);
   const q1 = quantileSorted(sorted, 0.25);
   const q3 = quantileSorted(sorted, 0.75);
@@ -271,7 +317,6 @@ export function forecastPeriod(
   const sd = sampleStandardDeviation(sample);
   const crit = tCritical(n - 1);
   const r = daysRemaining;
-  // Var(sum of j future days) + uncertainty in mu
   const at = (j: number) => {
     const e = spentSoFar + mu * j + (r > 0 ? (knownUpcoming * j) / r : 0);
     const s = sd * Math.sqrt(j + (j * j) / n);
@@ -280,10 +325,15 @@ export function forecastPeriod(
   const end = at(r);
   const last7 = sample.slice(-7);
   const reg = linearRegression(sample.map((v, i) => [i, v]));
+  const yMean = mu;
+  const ssTot = sample.reduce((acc, y) => acc + (y - yMean) ** 2, 0);
+  const ssRes = sample.reduce((acc, y, i) => acc + (y - (reg.m * i + reg.b)) ** 2, 0);
+  const rSquared = ssTot > 0 ? Math.max(0, 1 - ssRes / ssTot) : 0;
   return {
     ...end,
     movingAvg: spentSoFar + ssMean(last7) * r + knownUpcoming,
     trendSlope: reg.m,
+    rSquared,
     daysObserved: n,
     daysRemaining: r,
     se: sd * Math.sqrt(r + (r * r) / n),
@@ -293,7 +343,39 @@ export function forecastPeriod(
   };
 }
 
-/** Plain-language reading of a p-value. */
+export function explainFormalP(p: number, alpha = 0.05): {
+  decision: "Reject H₀" | "Fail to reject H₀";
+  conclusion: string;
+  significance: string;
+} {
+  if (p < 0.001) {
+    return {
+      decision: "Reject H₀",
+      conclusion: "Extremely strong statistical evidence indicating the two population means differ significantly.",
+      significance: "p < 0.001",
+    };
+  }
+  if (p < 0.01) {
+    return {
+      decision: "Reject H₀",
+      conclusion: "Strong empirical evidence of a statistically significant divergence between samples at α = 0.01.",
+      significance: "p < 0.01",
+    };
+  }
+  if (p < alpha) {
+    return {
+      decision: "Reject H₀",
+      conclusion: "Statistically significant evidence of a divergence between samples at standard α = 0.05 threshold.",
+      significance: "p < 0.05",
+    };
+  }
+  return {
+    decision: "Fail to reject H₀",
+    conclusion: "Insufficient empirical evidence to conclude population means differ; observed variation is consistent with stochastic variation.",
+    significance: "p ≥ 0.05 (Not significant)",
+  };
+}
+
 export function explainP(p: number): string {
   if (p < 0.01) return "very strong evidence of a real difference";
   if (p < 0.05) return "a statistically significant difference (p < 0.05)";
@@ -301,7 +383,6 @@ export function explainP(p: number): string {
   return "no real evidence of a difference – likely just random variation";
 }
 
-/** Standard normal CDF (Abramowitz–Stegun 7.1.26 erf approximation). */
 export function normalCdf(z: number): number {
   const x = Math.abs(z) / Math.SQRT2;
   const t = 1 / (1 + 0.3275911 * x);

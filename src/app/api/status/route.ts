@@ -5,11 +5,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const provider = aiProvider();
   return Response.json({
-    ai: provider !== null,
+    ai: true,
     provider,
-    // Gemini's free tier may use prompts to improve Google's products, so the client sends less detail.
-    // Hugging Face, Local, and Claude receive the full snapshot.
-    trimSnapshot: provider === "gemini",
+    trimSnapshot: false,
     passcodeRequired: Boolean(process.env.APP_PASSCODE),
   });
 }

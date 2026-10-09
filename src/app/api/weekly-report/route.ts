@@ -1,6 +1,13 @@
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { z } from "zod";
-import { aiProvider, errorResponse, fallbackParams, geminiJSON, getClient, guard, GURU_MODEL, huggingfaceJSON, localJSON } from "@/lib/server/ai";
+﻿import { z } from "zod";
+import {
+  aiProvider,
+  builtinWeeklyReport,
+  errorResponse,
+  geminiJSON,
+  guard,
+  groqJSON,
+  openrouterJSON,
+} from "@/lib/server/ai";
 
 const Body = z.object({
   name: z.string().max(60),
@@ -23,32 +30,35 @@ export async function POST(req: Request) {
   if (!parsed.success) return Response.json({ error: "Bad request" }, { status: 400 });
   const { name, summary, suggestedGrade } = parsed.data;
 
-  const system = `You are Stash 🦉, an owl and friendly money mentor writing a weekly spending report card for your user (${name}), a college student in India living on pocket money. Address them as "you". Be warm, specific and brief; use ₹ and only numbers from the data. The rule-based score suggests grade ${suggestedGrade}; keep the grade within one step of it.`;
+  const system = `You are Stash, an owl and friendly money mentor writing a weekly spending report card for your user (${name}), a college student in India living on pocket money. Address them as "you". Be warm, specific and brief; use the Indian Rupee symbol and only numbers from the data. The rule-based score suggests grade ${suggestedGrade}; keep the grade within one step of it.`;
   const user = `Last week's data:\n${summary}`;
 
   try {
-    let report: z.infer<typeof Report> | null;
-    const provider = aiProvider();
-    if (provider === "huggingface") {
-      report = await huggingfaceJSON(system, user, Report);
-    } else if (provider === "gemini") {
-      report = await geminiJSON(system, user, Report);
-    } else if (provider === "local") {
-      report = await localJSON(system, user, Report);
-    } else {
-      const response = await getClient().beta.messages.parse({
-        model: GURU_MODEL,
-        max_tokens: 2000,
-        ...fallbackParams(GURU_MODEL),
-        output_config: { effort: "low", format: betaZodOutputFormat(Report) },
-        system,
-        messages: [{ role: "user", content: user }],
-      });
-      report = response.stop_reason === "refusal" ? null : response.parsed_output;
+    // Cascade: try each AI provider, fall back to offline generator last
+    const startProvider = aiProvider();
+    const providers = [
+      { name: "gemini",     fn: () => geminiJSON(system, user, Report) },
+      { name: "groq",       fn: () => groqJSON(system, user, Report) },
+      { name: "openrouter", fn: () => openrouterJSON(system, user, Report) },
+    ];
+    const idx = providers.findIndex((p) => p.name === startProvider);
+    const sorted = idx > 0 ? [...providers.slice(idx), ...providers.slice(0, idx)] : providers;
+
+    let report: z.infer<typeof Report> | null = null;
+    for (const provider of sorted) {
+      try {
+        report = await provider.fn();
+        if (report) break;
+      } catch (err) {
+        console.warn(`[Kharcha] weekly-report ${provider.name} failed:`, (err as Error).message);
+      }
     }
+
+    // Final fallback: offline rule-based report (no AI needed)
     if (!report) {
-      return Response.json({ error: "Couldn't write the report this time." }, { status: 422 });
+      report = builtinWeeklyReport(name, summary, suggestedGrade);
     }
+
     return Response.json(report);
   } catch (err) {
     return errorResponse(err);

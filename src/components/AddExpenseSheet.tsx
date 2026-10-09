@@ -254,13 +254,8 @@ export function AddExpenseSheet({
               </Chip>
             ))}
           </div>
-          {aiOnline === false && (
-            <p className="rounded-2xl bg-bg-soft p-3 text-sm text-muted">
-              🦉 Stash is offline. Add your free <code>GEMINI_API_KEY</code> to <code>.env.local</code> and restart the app to use this.
-            </p>
-          )}
           {aiError && <p className="text-sm text-bad">{aiError}</p>}
-          <Button className="w-full" onClick={runAI} disabled={aiBusy || !aiText.trim() || aiOnline === false}>
+          <Button className="w-full" onClick={runAI} disabled={aiBusy || !aiText.trim()}>
             <Wand2 size={16} /> {aiBusy ? "Reading your note…" : "Fill the form"}
           </Button>
         </div>

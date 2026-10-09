@@ -6,13 +6,13 @@ import { ArrowDown, ArrowUp, Download, Plus, Trash2, Upload } from "lucide-react
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
+import { CloudSyncStatus } from "@/components/CloudSyncStatus";
 import { getAIStatus, type AIStatus } from "@/lib/ai-client";
 import { BADGES } from "@/lib/badges";
 import { backupNow, clearAll, downloadText, importBackup, isBackupFile } from "@/lib/backup";
 import { budgetFor, getPeriod } from "@/lib/budget";
 import { db, uid } from "@/lib/db";
 import { PASTELS, PAYMENT_MODES, TAGS } from "@/lib/defaults";
-import { loadDemoData } from "@/lib/demo";
 import { copyUsage, FEEDBACK_URL, usageSummary } from "@/lib/feedback";
 import { googleCalendarUrl, reminderIcs } from "@/lib/reminder";
 import { dayKey, parseDayKey, rupee } from "@/lib/format";
@@ -547,7 +547,15 @@ function AICard({ settings }: { settings: Settings }) {
       <SectionTitle>🦉 AI guide</SectionTitle>
       <p className="text-sm">
         Status:{" "}
-        {status == null ? "checking…" : status.ai ? <b className="text-good">online ({status.provider === "gemini" ? "Gemini, free" : "Claude"})</b> : <b className="text-bad">offline – add GEMINI_API_KEY to .env.local</b>}
+        {status == null ? (
+          "checking…"
+        ) : status.ai ? (
+          <b className="text-good">
+            online ({status.provider === "builtin" ? "Built-in offline engine" : status.provider === "gemini" ? "Google Gemini" : status.provider === "groq" ? "Groq (Llama 3.3)" : status.provider === "openrouter" ? "OpenRouter" : status.provider === "huggingface" ? "Hugging Face" : status.provider === "local" ? "Local LLM" : "Claude"})
+          </b>
+        ) : (
+          <b className="text-bad">offline</b>
+        )}
       </p>
       {status?.passcodeRequired && (
         <div className="mt-3 flex gap-2">
@@ -557,7 +565,7 @@ function AICard({ settings }: { settings: Settings }) {
           </Button>
         </div>
       )}
-      <p className="mt-2 text-xs text-muted">Kharcha only sees a summary of your numbers when you ask a question. Your key stays on the server.{status?.trimSnapshot && status.ai && " On Gemini's free tier only amounts, categories and goal numbers are sent – no item names, places or friends' names – because Google may use free-tier prompts to improve its products."}</p>
+      <p className="mt-2 text-xs text-muted">Stash works privately with a built-in offline engine. Your expense data never leaves your device.</p>
     </Card>
   );
 }
@@ -602,9 +610,12 @@ function DataCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>💾 Your data</SectionTitle>
+      <SectionTitle>☁️ Cloud sync & backup</SectionTitle>
+      <div className="mb-4">
+        <CloudSyncStatus />
+      </div>
       <p className="mb-3 text-sm text-muted">
-        Everything lives in this browser only. To move data between your phone and laptop, export a backup on one and import it on the other.
+        Sign in to automatically sync your expenses, budgets, and goals securely to Cloud Firestore across your devices.
       </p>
       <div className="mb-3 grid gap-2 sm:grid-cols-2">
         <div className="rounded-2xl bg-bg-soft p-3 text-sm">
@@ -635,16 +646,6 @@ function DataCard({ settings }: { settings: Settings }) {
           <Upload size={16} /> Import backup
         </Button>
         <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])} />
-        <Button
-          variant="ghost"
-          onClick={async () => {
-            if (!window.confirm("Replace everything with demo data? Export a backup first if you want to keep your data.")) return;
-            await loadDemoData(settings.name, settings.monthlyBudget);
-            toast({ emoji: "🧪", message: "Demo data loaded" });
-          }}
-        >
-          Load demo data
-        </Button>
         <Button
           variant="danger"
           onClick={async () => {
