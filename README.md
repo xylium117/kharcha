@@ -213,4 +213,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
-MIT © 2026
+MIT © 2026 Ayushman Sarkar & Sinchan Maity — see [LICENSE](LICENSE) for full terms.
