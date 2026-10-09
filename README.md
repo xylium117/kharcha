@@ -74,12 +74,6 @@ All data is stored locally in the browser using IndexedDB (Dexie). Google accoun
 - Debounced auto-sync with Firestore (triggers on change, every 2.5 min, on focus, and on reconnect)
 - Atomic pull transactions — no partial data writes
 
-### 📱 Mobile-First PWA
-- Installable on Android and iOS (standalone display)
-- Portrait orientation lock
-- Fast subsequent loads via Serwist/Workbox service worker (pre-caches all static assets)
-- TWA-compatible (`assetlinks.json` included for Play Store distribution)
-
 ---
 
 ## Tech Stack
@@ -91,7 +85,7 @@ All data is stored locally in the browser using IndexedDB (Dexie). Google accoun
 | Styling | Tailwind CSS 4 |
 | Local DB | Dexie (IndexedDB) |
 | Auth & Sync | Firebase v13 (Auth + Firestore) |
-| AI | Anthropic Claude (Stash the owl) |
+| AI | Claude + Gemini + Groq |
 | Charts | Recharts |
 | Animation | Framer Motion |
 | PWA | Serwist (Workbox) |
@@ -189,7 +183,7 @@ src/
     ├── badges.ts        # Badge definitions & evaluation
     ├── budget.ts        # Budget & period calculations
     ├── streaks.ts       # Streak logic
-    ├── ai-client.ts     # Anthropic / Stash integration
+    ├── ai-client.ts     # Stash integration
     └── hooks.ts         # Shared React hooks
 ```
 
@@ -219,4 +213,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
-MIT © 2026 [xylium117](https://github.com/xylium117)
+MIT © 2026
