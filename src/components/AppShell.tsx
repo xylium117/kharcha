@@ -308,13 +308,30 @@ function useBadgeWatcher(toast: UIContextValue["toast"]) {
   }, []);
 
   const pending = useRef(new Set<string>());
+  const isFirstEvaluation = useRef(true);
+
   useEffect(() => {
     if (!data?.settings) return;
     const have = new Set(data.badges.map((b) => b.id));
     const earned = earnedBadges({ ...data, settings: data.settings, now: new Date() });
     const fresh = earned.filter((id) => !have.has(id) && !pending.current.has(id));
-    if (!fresh.length) return;
+
+    if (!fresh.length) {
+      if (isFirstEvaluation.current) {
+        isFirstEvaluation.current = false;
+      }
+      return;
+    }
+
     fresh.forEach((id) => pending.current.add(id));
+
+    // On initial app load or account sign-in, silently record badges without celebration toasts
+    if (isFirstEvaluation.current) {
+      isFirstEvaluation.current = false;
+      db.badges.bulkPut(fresh.map((id) => ({ id, unlockedAt: Date.now() })));
+      return;
+    }
+
     db.badges.bulkPut(fresh.map((id) => ({ id, unlockedAt: Date.now() }))).then(() => {
       const first = BADGES.find((b) => b.id === fresh[0])!;
       celebrate();

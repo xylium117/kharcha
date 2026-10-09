@@ -43,23 +43,32 @@ export function Onboarding() {
       const uid = result.user.uid;
 
       let totalPulled = 0;
+      const pulledData: { table: string; items: any[] }[] = [];
       for (const table of TABLE_NAMES) {
         const colRef = collection(firestore, "users", uid, table);
         const snapshot = await getDocs(colRef);
         if (!snapshot.empty) {
           const items = snapshot.docs.map((d) => d.data());
-          const dexieTable = (db as any)[table];
-          if (dexieTable) {
-            await dexieTable.bulkPut(items);
-            totalPulled += items.length;
-          }
+          pulledData.push({ table, items });
+          totalPulled += items.length;
         }
       }
 
       if (totalPulled === 0) {
         setRestoreError("No cloud data found for this account.");
         setRestoring(false);
+        return;
       }
+
+      const tablesToLock = TABLE_NAMES.map((n) => db.table(n));
+      await db.transaction("rw", tablesToLock, async () => {
+        for (const { table, items } of pulledData) {
+          const dexieTable = (db as any)[table];
+          if (dexieTable) {
+            await dexieTable.bulkPut(items);
+          }
+        }
+      });
       // If data was pulled, db.settings now exists and the app re-renders past Onboarding automatically
     } catch (err: any) {
       console.error("Restore from cloud error:", err);

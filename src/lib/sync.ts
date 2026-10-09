@@ -83,19 +83,28 @@ export async function syncWithCloudCore(): Promise<void> {
       }
     }
 
-    // 2. Pull remote data down into local Dexie
+    // 2. Pull remote data down into local Dexie in an atomic transaction
     isPullingFromCloud = true;
     try {
+      const pulledData: { table: string; items: any[] }[] = [];
       for (const table of TABLE_NAMES) {
         const colRef = collection(firestore, "users", uid, table);
         const snapshot = await getDocs(colRef);
         if (!snapshot.empty) {
-          const remoteItems = snapshot.docs.map((d) => d.data());
-          const dexieTable = (db as any)[table];
-          if (dexieTable) {
-            await dexieTable.bulkPut(remoteItems);
-          }
+          pulledData.push({ table, items: snapshot.docs.map((d) => d.data()) });
         }
+      }
+
+      if (pulledData.length > 0) {
+        const tablesToLock = TABLE_NAMES.map((n) => db.table(n));
+        await db.transaction("rw", tablesToLock, async () => {
+          for (const { table, items } of pulledData) {
+            const dexieTable = (db as any)[table];
+            if (dexieTable) {
+              await dexieTable.bulkPut(items);
+            }
+          }
+        });
       }
     } finally {
       isPullingFromCloud = false;

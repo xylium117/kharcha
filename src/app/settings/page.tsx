@@ -650,7 +650,12 @@ function DataCard({ settings }: { settings: Settings }) {
           variant="danger"
           onClick={async () => {
             if (!window.confirm("Delete ALL data on this device? This can't be undone.")) return;
+            try {
+              const { auth } = await import("@/lib/firebase");
+              if (auth.currentUser) await auth.signOut();
+            } catch {}
             await clearAll();
+            window.location.reload();
           }}
         >
           <Trash2 size={16} /> Reset everything
