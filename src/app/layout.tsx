@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="bg-blobs min-h-full">
         <AppShell>{children}</AppShell>
+        <Analytics />
       </body>
     </html>
   );
