@@ -15,7 +15,7 @@ import type {
   WishItem,
 } from "./types";
 
-export class PaisaDB extends Dexie {
+export class KharchaDB extends Dexie {
   settings!: EntityTable<Settings, "id">;
   categories!: EntityTable<Category, "id">;
   expenses!: EntityTable<Expense, "id">;
@@ -31,7 +31,7 @@ export class PaisaDB extends Dexie {
   income!: EntityTable<Income, "id">;
 
   constructor() {
-    super("paisa-pal");
+    super("kharcha");
     this.version(1).stores({
       settings: "id",
       categories: "id",
@@ -46,14 +46,12 @@ export class PaisaDB extends Dexie {
       wishlist: "id, status",
       reports: "weekStart",
     });
-    // v2: IOUs are listed newest-first, so index their timestamp.
     this.version(2).stores({ ious: "id, person, settled, ts" });
-    // v3: money coming in (gifts, refunds, IOU repayments).
     this.version(3).stores({ income: "id, ts, iouId" });
   }
 }
 
-export const db = new PaisaDB();
+export const db = new KharchaDB();
 
 export const TABLE_NAMES = [
   "settings",

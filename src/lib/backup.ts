@@ -1,7 +1,7 @@
 import { db, TABLE_NAMES, type TableName } from "./db";
 
 export interface BackupFile {
-  app: "paisa-pal";
+  app: "kharcha" | "paisa-pal";
   version: 1;
   exportedAt: string;
   data: Partial<Record<TableName, unknown[]>>;
@@ -12,13 +12,13 @@ export async function exportBackup(): Promise<BackupFile> {
   for (const name of TABLE_NAMES) {
     data[name] = await db.table(name).toArray();
   }
-  return { app: "paisa-pal", version: 1, exportedAt: new Date().toISOString(), data };
+  return { app: "kharcha", version: 1, exportedAt: new Date().toISOString(), data };
 }
 
 export function isBackupFile(x: unknown): x is BackupFile {
   if (!x || typeof x !== "object") return false;
   const b = x as BackupFile;
-  return b.app === "paisa-pal" && b.version === 1 && typeof b.data === "object" && b.data !== null;
+  return (b.app === "kharcha" || b.app === "paisa-pal") && b.version === 1 && typeof b.data === "object" && b.data !== null;
 }
 
 /** Replaces everything on this device with the backup's contents. */

@@ -471,7 +471,7 @@ function AppearanceCard() {
   // Settings only renders client-side (after the local DB loads), so reading storage here is safe.
   const [theme, setTheme] = useState<ThemePref>(() => {
     try {
-      return (localStorage.getItem("pp-theme") as ThemePref) || "system";
+      return (localStorage.getItem("kharcha-theme") as ThemePref) || (localStorage.getItem("pp-theme") as ThemePref) || "system";
     } catch {
       return "system";
     }
@@ -479,7 +479,7 @@ function AppearanceCard() {
   function pick(t: ThemePref) {
     setTheme(t);
     try {
-      localStorage.setItem("pp-theme", t);
+      localStorage.setItem("kharcha-theme", t);
     } catch {}
     const dark = t === "dark" || (t === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.dataset.theme = dark ? "dark" : "light";

@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 
 const clientInitScript = `(function(){
   try{
-    var p=localStorage.getItem('pp-theme')||'system';
+    var p=localStorage.getItem('kharcha-theme')||localStorage.getItem('pp-theme')||'system';
     var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
     document.documentElement.dataset.theme=d?'dark':'light';
   }catch(e){
