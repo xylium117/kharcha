@@ -35,7 +35,7 @@ export async function importBackup(file: BackupFile): Promise<void> {
 }
 
 export async function clearAll(): Promise<void> {
-  const tables = TABLE_NAMES.map((n) => db.table(n));
+  const tables = [...TABLE_NAMES.map((n) => db.table(n)), db.deletedRecords];
   await db.transaction("rw", tables, async () => {
     for (const t of tables) await t.clear();
   });

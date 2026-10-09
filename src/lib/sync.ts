@@ -58,7 +58,26 @@ export async function syncWithCloudCore(): Promise<void> {
   notifySubscribers();
 
   try {
-    // 1. Push local data to cloud (skip if no local data)
+    // 1. Delete records from cloud that were deleted locally
+    const tombstones = await db.deletedRecords.toArray();
+    if (tombstones.length > 0) {
+      const tombstoneChunks = [];
+      const cSize = 400;
+      for (let i = 0; i < tombstones.length; i += cSize) {
+        tombstoneChunks.push(tombstones.slice(i, i + cSize));
+      }
+      for (const chunk of tombstoneChunks) {
+        const batch = writeBatch(firestore);
+        for (const item of chunk) {
+          const docRef = doc(firestore, "users", uid, item.table, item.id);
+          batch.delete(docRef);
+        }
+        await batch.commit();
+      }
+      await db.deletedRecords.bulkDelete(tombstones.map((t) => t.id));
+    }
+
+    // 2. Push local data to cloud (skip if no local data)
     const localCount = await countAllLocalRecords();
     if (localCount > 0) {
       for (const table of TABLE_NAMES) {
@@ -83,15 +102,26 @@ export async function syncWithCloudCore(): Promise<void> {
       }
     }
 
-    // 2. Pull remote data down into local Dexie in an atomic transaction
+    // 3. Pull remote data down into local Dexie in an atomic transaction
     isPullingFromCloud = true;
     try {
+      const activeTombstones = new Set(
+        (await db.deletedRecords.toArray()).map((t) => `${t.table}:${t.id}`)
+      );
       const pulledData: { table: string; items: any[] }[] = [];
       for (const table of TABLE_NAMES) {
         const colRef = collection(firestore, "users", uid, table);
         const snapshot = await getDocs(colRef);
         if (!snapshot.empty) {
-          pulledData.push({ table, items: snapshot.docs.map((d) => d.data()) });
+          const validItems = snapshot.docs
+            .map((d) => d.data())
+            .filter((item) => {
+              const docId = String(item.id || item.weekStart || (item as any).key || "record");
+              return !activeTombstones.has(`${table}:${docId}`);
+            });
+          if (validItems.length > 0) {
+            pulledData.push({ table, items: validItems });
+          }
         }
       }
 
@@ -134,14 +164,26 @@ if (typeof window !== "undefined") {
   TABLE_NAMES.forEach((tableName) => {
     const table = (db as any)[tableName];
     if (table?.hook) {
-      table.hook("creating", () => {
-        if (!isPullingFromCloud) triggerDebouncedAutoSync();
+      table.hook("creating", (primKey: any, obj: any) => {
+        if (!isPullingFromCloud) {
+          const id = String(obj?.id || primKey || "");
+          if (id) {
+            db.deletedRecords.delete(id).catch(() => {});
+          }
+          triggerDebouncedAutoSync();
+        }
       });
       table.hook("updating", () => {
         if (!isPullingFromCloud) triggerDebouncedAutoSync();
       });
-      table.hook("deleting", () => {
-        if (!isPullingFromCloud) triggerDebouncedAutoSync();
+      table.hook("deleting", (primKey: any) => {
+        if (!isPullingFromCloud) {
+          const id = String(primKey || "");
+          if (id) {
+            db.deletedRecords.put({ id, table: tableName, deletedAt: Date.now() }).catch(() => {});
+          }
+          triggerDebouncedAutoSync();
+        }
       });
     }
   });

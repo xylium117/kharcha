@@ -29,6 +29,7 @@ export class KharchaDB extends Dexie {
   wishlist!: EntityTable<WishItem, "id">;
   reports!: EntityTable<WeeklyReport, "weekStart">;
   income!: EntityTable<Income, "id">;
+  deletedRecords!: EntityTable<{ id: string; table: string; deletedAt: number }, "id">;
 
   constructor() {
     super("kharcha");
@@ -48,6 +49,7 @@ export class KharchaDB extends Dexie {
     });
     this.version(2).stores({ ious: "id, person, settled, ts" });
     this.version(3).stores({ income: "id, ts, iouId" });
+    this.version(4).stores({ deletedRecords: "id, table, deletedAt" });
   }
 }
 
