@@ -26,7 +26,7 @@ export default function SettingsPage() {
   if (!settings) return null;
   return (
     <div className="space-y-4">
-      <PageHeader title="Settings ⚙️" subtitle="Make Kharcha yours." />
+      <PageHeader title="Settings" subtitle="Make Kharcha yours." />
       <ProfileCard settings={settings} />
       <SeasonCard settings={settings} />
       <div className="grid gap-4 lg:grid-cols-2">

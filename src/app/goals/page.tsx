@@ -49,7 +49,7 @@ export default function GoalsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Savings goals 🎯"
+        title="Goals"
         subtitle={`${rupee(totalSaved)} saved across all goals`}
         action={
           <Button onClick={() => setCreating(true)}>

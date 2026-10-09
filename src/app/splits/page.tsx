@@ -56,7 +56,7 @@ export default function SplitsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Splits & IOUs 🤝" subtitle="Who owes whom – no awkward reminders needed." />
+      <PageHeader title="Splits & IOUs" subtitle="Who owes whom – no awkward reminders needed." />
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => setSplitting(true)}>
           <Split size={16} /> Split a bill

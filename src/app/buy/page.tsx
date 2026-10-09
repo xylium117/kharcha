@@ -95,7 +95,7 @@ export default function BuyPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Should I buy it? 🤔" subtitle="Run the numbers before you tap 'Pay'." />
+      <PageHeader title="Should I buy it?" subtitle="Run the numbers before you tap 'Pay'." />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
         <Card>

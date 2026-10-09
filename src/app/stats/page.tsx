@@ -227,10 +227,10 @@ export default function StatsPage() {
             </div>
             <div>
               <div className="text-xl font-extrabold tracking-tight sm:text-2xl text-ink">
-                Spending Analytics &amp; Stats Hub
+                Stats Lab
               </div>
               <div className="text-xs font-semibold text-muted">
-                Clear insights into your daily habits, routine spending, and month-end forecast
+                Your spending, visualised.
               </div>
             </div>
           </div>
