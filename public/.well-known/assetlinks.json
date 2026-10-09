@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.kharcha.twa",
+      "sha256_cert_fingerprints": [
+        "00:CD:77:38:DA:42:55:6F:DE:85:8D:F0:D3:45:A8:55:7F:06:90:83:56:FB:E9:5E:F7:47:84:EC:0D:C1:53:70"
+      ]
+    }
+  }
+]
