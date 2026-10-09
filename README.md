@@ -1,110 +1,222 @@
-# Kharcha 🦉
+# Kharcha 💸
 
-A pocket-money expense tracker for college students, with an AI money mentor named **Stash**.
+> **Pocket money tracker built for students.**  
+> Log expenses in seconds, stay on budget, and let Stash the owl talk you out of bad purchases.
 
-- **Dashboard:** "safe to spend today", the month ring, streaks, quick-add buttons and recent expenses.
-- **Add expenses three ways:** one-tap quick buttons, a full form, or "just type it" (e.g. `momos 120 at Dey's stall`). Each expense gets a Need / Want / Waste tag, a place, a payment mode and a mood.
-- **History** with search and filters. **Reports** by month and by year, including semester (academic-year) views.
-- **Stats Lab:**
-  - descriptive statistics
-  - histogram and box plot
-  - z-score outliers
-  - Welch's t-test (weekend vs weekday)
-  - month-end forecast with a 95% interval and P(within budget)
-  - weekday × time heatmap
-- **Ask Stash:** an AI chat that sees your real numbers and gives ✅ / ⚠️ / ❌ verdicts on purchases.
-- **Savings goals**, **Splits & IOUs**, **Should I buy it?** (with a 24-hour cool-off wishlist), a **weekly report card**, **badges & streaks**, and **semester modes** (exam, fest, home trip).
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38BDF8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Firebase](https://img.shields.io/badge/Firebase-13-FFA611?logo=firebase&logoColor=white)](https://firebase.google.com)
+[![PWA](https://img.shields.io/badge/PWA-Offline--Ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps)
+[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-black?logo=vercel)](https://vercel.com)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-All data stays in your browser (IndexedDB). Nothing is uploaded, except the short summary sent to the AI when you ask Stash something.
+---
 
-## Run it
+## Overview
 
-You need Node.js 20+. This Mac has Node 22 installed at `~/.local/node`. If `node` isn't found, run this first:
+**Kharcha** (Hindi: *expenditure*) is a privacy-first, offline-capable Progressive Web App that helps students track daily spending, visualise habits, and build better money discipline — without subscriptions, ads, or data harvesting.
+
+All data is stored locally in the browser using IndexedDB (Dexie). Google account sync is optional and end-user controlled.
+
+---
+
+## Features
+
+### 💰 Daily Expense Logging
+- One-tap quick buttons for recurring expenses (Tea, Bus, Canteen, etc.)
+- 10 built-in categories with custom emoji and colour support
+- Need / Want / Waste tagging and mood tracking per entry
+- Payment mode tracking (UPI, Cash, Card)
+- No-spend day marking
+
+### 📊 Stats Lab
+- Category breakdown and daily spend charts (Recharts)
+- Logging streak and under-limit streak counters
+- Month-end budget forecast
+- Season-aware budgeting (normal / academic / vacation)
+
+### 🎯 Goals
+- Create savings goals with a target amount and deadline
+- Reserve a portion of the monthly budget for each goal
+- Log contributions and track progress visually
+
+### 🤝 Splits & IOUs
+- Split bills among friends and track who owes what
+- Settle IOUs with one tap
+
+### 🤔 Should I Buy It?
+- Impulse-purchase checker powered by Stash the owl (AI)
+- 24-hour cool-off wishlist — skip an item to earn the *Impulse Slayer* badge
+
+### 🏅 Gamification
+14 collectible badges reward consistent tracking behaviour:
+
+| Badge | Condition |
+|---|---|
+| 🐣 First Log | Log your very first expense |
+| 🔥 Warming Up | 3-day logging streak |
+| 📆 Habit Builder | 7-day logging streak |
+| 🚀 Unstoppable | 30-day logging streak |
+| 🐷 7-Day Saver | Under daily limit 7 days in a row |
+| 🥦 No-Junk Week | Full week without a 'waste' expense |
+| 0️⃣ Zero Hero | Mark a no-spend day |
+| 🎯 Goal Getter | Complete a savings goal |
+| 🥷 Budget Ninja | Finish a whole month under budget |
+| 🤓 Stats Nerd | Open Stats Lab 5 times |
+| 🦉 Curious Mind | Ask Stash 10 questions |
+| 🤝 Fair & Square | Settle 5 IOUs |
+| 🗡️ Impulse Slayer | Skip a wishlist item after 24 h |
+| 💯 Centurion | Log 100 expenses |
+
+### ☁️ Cloud Sync
+- Optional Google Sign-in with persistent account selection
+- Debounced auto-sync with Firestore (triggers on change, every 2.5 min, on focus, and on reconnect)
+- Atomic pull transactions — no partial data writes
+
+### 📱 Mobile-First PWA
+- Installable on Android and iOS (standalone display)
+- Portrait orientation lock
+- Offline-ready via Serwist/Workbox service worker (pre-caches all static assets)
+- TWA-compatible (`assetlinks.json` included for Play Store distribution)
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Language | TypeScript 5 |
+| Styling | Tailwind CSS 4 |
+| Local DB | Dexie (IndexedDB) |
+| Auth & Sync | Firebase v13 (Auth + Firestore) |
+| AI | Anthropic Claude (Stash the owl) |
+| Charts | Recharts |
+| Animation | Framer Motion |
+| PWA | Serwist (Workbox) |
+| Analytics | Vercel Analytics |
+| Deployment | Vercel |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js >= 20
+- A Firebase project with **Authentication** (Google provider) and **Firestore** enabled
+- An Anthropic API key (optional — for Stash AI features)
+
+### 1. Clone & install
 
 ```bash
-export PATH="$HOME/.local/node/bin:$PATH"
+git clone https://github.com/xylium117/kharcha.git
+cd kharcha
+npm install
 ```
 
-Then:
+### 2. Configure environment variables
 
 ```bash
-npm install
+cp .env.example .env.local
+```
+
+Edit `.env.local` and fill in your Firebase and Anthropic credentials:
+
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+ANTHROPIC_API_KEY=...
+```
+
+### 3. Run locally
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:3000. On first launch you can start fresh or explore with 80 days of demo data.
+Open http://localhost:3000.
 
-## Stash (AI Financial Mentor)
+### 4. Build for production
 
-Stash works **100% offline out-of-the-box** using a built-in intelligent engine with zero setup or API keys required. All natural-language expense parsing, chat advice, and weekly reports work directly on your device.
-
-If you optionally want to use an external cloud LLM:
-1. Copy `.env.example` to `.env.local`.
-2. Set your preferred provider:
-   - **Hugging Face (free):** `HF_TOKEN=...` from https://huggingface.co/settings/tokens (runs `Qwen/Qwen2.5-7B-Instruct`).
-   - **Anthropic Claude (paid):** `ANTHROPIC_API_KEY=...` from https://console.anthropic.com/.
-   - **Self-hosted:** `LOCAL_LLM_URL=http://localhost:11434` (Ollama or `llm/serve.py`).
-3. Restart `npm run dev`.
-
-| Provider | Chat + weekly report | "Just type it" parsing |
-|---|---|---|
-| Built-in (offline, 0 config) | Fast local finance-reasoning engine | Rule-based NLP parser |
-| Hugging Face (free; open weights) | `Qwen/Qwen2.5-7B-Instruct` (`HF_MODEL`) | same |
-| Claude (paid) | `claude-sonnet-5-5` (`GURU_MODEL`) | `claude-haiku-4-5` (`PARSER_MODEL`) |
-| Local / Self-hosted | Fine-tuned Stash / Ollama (`LOCAL_LLM_URL`) | same |
-
-`AI_PROVIDER=builtin|huggingface|claude|local` forces a specific engine.
-
-## Put it online (free) and install on Android
-
-1. Create a free account at https://vercel.com/signup (Hobby plan, personal non-commercial use).
-2. From the `paisa-pal` folder, log in and link the project:
-   ```bash
-   npx vercel login
-   npx vercel link
-   ```
-3. (Optional) Add your passcode or custom token:
-   ```bash
-   npx vercel env add APP_PASSCODE production
-   ```
-4. Deploy: `npx vercel --prod`. Vercel prints the app's address (`https://….vercel.app`).
-5. On Android, open that address in Chrome → ⋮ menu → **Install app**. Then open **Settings → AI guide** in the app and enter your passcode.
-
-Each device keeps its own data: use **Settings → Your data → Export/Import backup** to copy data from the laptop to the phone.
-
-## Use it on your phone
-
-- Run `npm run dev` on the Mac. The terminal prints a **Network** address like `http://192.168.x.x:3000`; open it on your phone over the same Wi-Fi.
-- On iPhone, use Share → **Add to Home Screen** to get an app icon.
-- Each device keeps its **own** data. To copy data across, use **Settings → Your data → Export backup** on one device and **Import backup** on the other.
-
-## Scripts
-
-| Command | What it does |
-|---|---|
-| `npm run dev` | Development server |
-| `npm test` | Unit tests for budget math, statistics, streaks and verdict parsing (Vitest) |
-| `npm run build && npm start` | Production build |
-| `npm run lint` | ESLint |
-
-## Where things live
-
-```
-src/app/            pages (/, history, reports, stats, guide, goals, splits, buy, settings) + API routes
-src/app/api/        chat (streaming), parse-expense, weekly-report, status – server only
-src/components/     AppShell (nav, toasts, badges), AddExpenseSheet, charts, Mascot (Stash the owl)
-src/lib/budget.ts   budget periods, safe-to-spend, recurring, goal reserves
-src/lib/stats.ts    descriptive stats, t-distribution, Welch test, histogram, forecast
-src/lib/db.ts       Dexie (IndexedDB) schema
-tests/              Vitest unit tests
+```bash
+npm run build
+npm start
 ```
 
-## Sharing with friends (3-month test)
+The production build generates `public/sw.js` — the pre-caching service worker.
 
-- **Every friend uses the same link** and installs it (Android: Chrome → ⋮ → Install app; the app also shows an **Install** banner). Each person's data stays on their own phone; nobody else can see it.
-- **The free Gemini key is shared** behind `APP_PASSCODE`. Give friends the passcode; the chat asks for it once per device.
-- **Feedback:**
-  - Set `NEXT_PUBLIC_FEEDBACK_URL` (e.g. a Google Form) on Vercel and redeploy.
-  - Friends then get a **Send feedback** button (Settings and the More menu) and a **weekly check-in** card from week 2.
-  - **Copy my usage summary** produces anonymous counts only (days used, features tried), never amounts, items or names.
-- **Updates:** redeploying updates everyone the next time they open the app. Never edit an existing Dexie schema version; add a new one, or friends' data breaks.
+---
+
+## Deployment
+
+The app is designed for one-click Vercel deployment.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/xylium117/kharcha)
+
+Set the environment variables listed above in the Vercel project settings. The service worker is automatically generated at build time.
+
+---
+
+## Project Structure
+
+```
+src/
+├── app/                 # Next.js App Router pages
+│   ├── page.tsx         # Dashboard (home)
+│   ├── stats/           # Stats Lab
+│   ├── goals/           # Savings goals
+│   ├── splits/          # Splits & IOUs
+│   ├── buy/             # Should I buy it?
+│   ├── history/         # Full expense history
+│   ├── reports/         # Monthly reports
+│   ├── guide/           # User guide
+│   └── settings/        # Settings & profile
+├── components/
+│   ├── AppShell.tsx     # Navigation, badge watcher, layout
+│   ├── ui.tsx           # Design system components
+│   ├── CloudSyncStatus.tsx
+│   └── Mascot.tsx       # Stash the owl
+└── lib/
+    ├── db.ts            # Dexie schema
+    ├── sync.ts          # Cloud sync engine
+    ├── firebase.ts      # Firebase initialisation
+    ├── badges.ts        # Badge definitions & evaluation
+    ├── budget.ts        # Budget & period calculations
+    ├── streaks.ts       # Streak logic
+    ├── ai-client.ts     # Anthropic / Stash integration
+    └── hooks.ts         # Shared React hooks
+```
+
+---
+
+## Privacy
+
+- No third-party analytics beyond aggregate Vercel traffic metrics
+- No ads, no data selling
+- All financial data lives on the user's device in IndexedDB
+- Cloud sync is opt-in — data goes only to the user's own Firestore document, keyed by their UID
+- Right-click and text selection are disabled to discourage casual data harvesting from shared screens
+
+---
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## License
+
+MIT © 2026 [xylium117](https://github.com/xylium117)
