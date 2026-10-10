@@ -10,6 +10,7 @@ import { celebrate } from "@/lib/confetti";
 import { db, uid } from "@/lib/db";
 import { dayKey, parseDayKey, rupee, timestamp } from "@/lib/format";
 import { useContributions, useGoals, useNow } from "@/lib/hooks";
+import { recordLocalDeletion } from "@/lib/sync";
 import type { Goal } from "@/lib/types";
 
 const EMOJIS = ["🎧", "📱", "💻", "👟", "🏖️", "🎸", "📷", "🎁", "📚", "🚲", "🎮", "💰"];
@@ -32,6 +33,10 @@ export default function GoalsPage() {
       await db.goals.delete(g.id);
       await db.goalContributions.bulkDelete(cs.map((c) => c.id));
     });
+    await recordLocalDeletion("goals", g.id);
+    for (const c of cs) {
+      await recordLocalDeletion("goalContributions", c.id);
+    }
     toast({
       emoji: "🗑️",
       message: `Deleted "${g.title}"`,

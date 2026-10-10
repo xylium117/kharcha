@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import Dexie from "dexie";
 import {
   type User,
   onAuthStateChanged,
@@ -10,6 +11,7 @@ import {
   doc,
   getDocs,
   writeBatch,
+  deleteDoc,
 } from "firebase/firestore";
 import { auth, googleProvider, firestore } from "./firebase";
 import { db, TABLE_NAMES } from "./db";
@@ -39,6 +41,7 @@ async function countAllLocalRecords(): Promise<number> {
 // Module-level coordinated state across all hook consumers
 let currentUser: User | null = null;
 let isSyncing = false;
+let hasPendingSync = false;
 let lastSyncTime: Date | null = null;
 let isNewDeviceState = false;
 let isPullingFromCloud = false;
@@ -49,9 +52,27 @@ function notifySubscribers() {
   subscribers.forEach((cb) => cb());
 }
 
+/** Record a deletion tombstone locally in a transaction-safe manner */
+export async function recordLocalDeletion(table: string, id: string): Promise<void> {
+  if (!id) return;
+  const key = `${table}:${id}`;
+  await Dexie.ignoreTransaction(async () => {
+    await db.deletedRecords.put({
+      id: key,
+      table,
+      deletedAt: Date.now(),
+    });
+  });
+  triggerDebouncedAutoSync(500);
+}
+
 /** Core bidirectional sync logic */
 export async function syncWithCloudCore(): Promise<void> {
-  if (!auth.currentUser || isSyncing) return;
+  if (!auth.currentUser) return;
+  if (isSyncing) {
+    hasPendingSync = true;
+    return;
+  }
   const uid = auth.currentUser.uid;
   isSyncing = true;
   isNewDeviceState = false;
@@ -69,15 +90,70 @@ export async function syncWithCloudCore(): Promise<void> {
       for (const chunk of tombstoneChunks) {
         const batch = writeBatch(firestore);
         for (const item of chunk) {
-          const docRef = doc(firestore, "users", uid, item.table, item.id);
+          const recordId = item.id.includes(":") ? item.id.split(":").slice(1).join(":") : item.id;
+          const docRef = doc(firestore, "users", uid, item.table, recordId);
           batch.delete(docRef);
+
+          // Also write to cloud tombstones (_deleted collection) so other devices know
+          const tombstoneDocRef = doc(firestore, "users", uid, "_deleted", `${item.table}__${recordId}`);
+          batch.set(tombstoneDocRef, {
+            table: item.table,
+            recordId,
+            deletedAt: item.deletedAt || Date.now(),
+          });
         }
         await batch.commit();
       }
-      await db.deletedRecords.bulkDelete(tombstones.map((t) => t.id));
+      // Keep recent tombstones so sync never resurrects them; prune only those older than 30 days
+      const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      await Dexie.ignoreTransaction(async () => {
+        await db.deletedRecords.where("deletedAt").below(thirtyDaysAgo).delete().catch(() => {});
+      });
     }
 
-    // 2. Push local data to cloud (skip if no local data)
+    // 1b. Pull remote tombstones from "_deleted" so this device learns of deletions made on other devices
+    try {
+      const delColRef = collection(firestore, "users", uid, "_deleted");
+      const delSnapshot = await getDocs(delColRef);
+      if (!delSnapshot.empty) {
+        const remoteTombstones: { id: string; table: string; deletedAt: number }[] = [];
+        for (const docSnap of delSnapshot.docs) {
+          const d = docSnap.data();
+          if (d.table && d.recordId) {
+            const key = `${d.table}:${d.recordId}`;
+            remoteTombstones.push({
+              id: key,
+              table: d.table,
+              deletedAt: d.deletedAt || Date.now(),
+            });
+            // Ensure deleted record is purged locally if still present in local Dexie
+            const localTable = (db as any)[d.table];
+            if (localTable) {
+              await Dexie.ignoreTransaction(async () => {
+                await localTable.delete(d.recordId).catch(() => {});
+              });
+            }
+          }
+        }
+        if (remoteTombstones.length > 0) {
+          await Dexie.ignoreTransaction(async () => {
+            await db.deletedRecords.bulkPut(remoteTombstones).catch(() => {});
+          });
+        }
+      }
+    } catch (delErr) {
+      console.warn("Could not sync remote tombstones:", delErr);
+    }
+
+    // 2. Push local data to cloud (skip if no local data, and never push deleted items)
+    const localTombstonesList = await db.deletedRecords.toArray();
+    const activeTombstoneKeys = new Set<string>();
+    for (const t of localTombstonesList) {
+      const recId = t.id.includes(":") ? t.id.split(":").slice(1).join(":") : t.id;
+      activeTombstoneKeys.add(`${t.table}:${recId}`);
+      activeTombstoneKeys.add(t.id);
+    }
+
     const localCount = await countAllLocalRecords();
     if (localCount > 0) {
       for (const table of TABLE_NAMES) {
@@ -86,9 +162,16 @@ export async function syncWithCloudCore(): Promise<void> {
         const localItems = await dexieTable.toArray();
         if (localItems.length === 0) continue;
 
+        // Filter out any locally deleted records
+        const itemsToPush = localItems.filter((item: any) => {
+          const docId = String(item.id || item.weekStart || item.key || "record");
+          return !activeTombstoneKeys.has(`${table}:${docId}`) && !activeTombstoneKeys.has(docId);
+        });
+        if (itemsToPush.length === 0) continue;
+
         const chunkSize = 400;
-        for (let i = 0; i < localItems.length; i += chunkSize) {
-          const chunk = localItems.slice(i, i + chunkSize);
+        for (let i = 0; i < itemsToPush.length; i += chunkSize) {
+          const chunk = itemsToPush.slice(i, i + chunkSize);
           const batch = writeBatch(firestore);
           for (const item of chunk) {
             const docId = String(
@@ -105,20 +188,38 @@ export async function syncWithCloudCore(): Promise<void> {
     // 3. Pull remote data down into local Dexie in an atomic transaction
     isPullingFromCloud = true;
     try {
-      const activeTombstones = new Set(
-        (await db.deletedRecords.toArray()).map((t) => `${t.table}:${t.id}`)
-      );
+      const refreshedTombstones = await db.deletedRecords.toArray();
+      const pullFilterKeys = new Set<string>();
+      for (const t of refreshedTombstones) {
+        const recId = t.id.includes(":") ? t.id.split(":").slice(1).join(":") : t.id;
+        pullFilterKeys.add(`${t.table}:${recId}`);
+        pullFilterKeys.add(t.id);
+      }
+
       const pulledData: { table: string; items: any[] }[] = [];
       for (const table of TABLE_NAMES) {
         const colRef = collection(firestore, "users", uid, table);
         const snapshot = await getDocs(colRef);
         if (!snapshot.empty) {
-          const validItems = snapshot.docs
-            .map((d) => d.data())
-            .filter((item) => {
-              const docId = String(item.id || item.weekStart || (item as any).key || "record");
-              return !activeTombstones.has(`${table}:${docId}`);
-            });
+          const validItems: any[] = [];
+          for (const d of snapshot.docs) {
+            const item = d.data();
+            const docId = String(item.id || item.weekStart || (item as any).key || d.id || "record");
+            if (
+              pullFilterKeys.has(`${table}:${docId}`) ||
+              pullFilterKeys.has(`${table}:${d.id}`) ||
+              pullFilterKeys.has(docId) ||
+              pullFilterKeys.has(d.id)
+            ) {
+              // Deleted item found lingering in remote Firestore — delete it
+              try {
+                const lingerRef = doc(firestore, "users", uid, table, d.id);
+                deleteDoc(lingerRef).catch(() => {});
+              } catch {}
+              continue;
+            }
+            validItems.push(item);
+          }
           if (validItems.length > 0) {
             pulledData.push({ table, items: validItems });
           }
@@ -146,6 +247,10 @@ export async function syncWithCloudCore(): Promise<void> {
   } finally {
     isSyncing = false;
     notifySubscribers();
+    if (hasPendingSync) {
+      hasPendingSync = false;
+      triggerDebouncedAutoSync(500);
+    }
   }
 }
 
@@ -166,21 +271,42 @@ if (typeof window !== "undefined") {
     if (table?.hook) {
       table.hook("creating", (primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
-          const id = String(obj?.id || primKey || "");
-          if (id) {
-            db.deletedRecords.delete(id).catch(() => {});
+          const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
+          if (rawId) {
+            const tombstoneKey = `${tableName}:${rawId}`;
+            Dexie.ignoreTransaction(() => {
+              db.deletedRecords.delete(tombstoneKey).catch(() => {});
+              db.deletedRecords.delete(rawId).catch(() => {});
+            });
           }
           triggerDebouncedAutoSync();
         }
       });
-      table.hook("updating", () => {
-        if (!isPullingFromCloud) triggerDebouncedAutoSync();
-      });
-      table.hook("deleting", (primKey: any) => {
+      table.hook("updating", (mods: any, primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
-          const id = String(primKey || "");
-          if (id) {
-            db.deletedRecords.put({ id, table: tableName, deletedAt: Date.now() }).catch(() => {});
+          const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
+          if (rawId) {
+            const tombstoneKey = `${tableName}:${rawId}`;
+            Dexie.ignoreTransaction(() => {
+              db.deletedRecords.delete(tombstoneKey).catch(() => {});
+              db.deletedRecords.delete(rawId).catch(() => {});
+            });
+          }
+          triggerDebouncedAutoSync();
+        }
+      });
+      table.hook("deleting", (primKey: any, obj: any) => {
+        if (!isPullingFromCloud) {
+          const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
+          if (rawId) {
+            const tombstoneKey = `${tableName}:${rawId}`;
+            Dexie.ignoreTransaction(() => {
+              db.deletedRecords
+                .put({ id: tombstoneKey, table: tableName, deletedAt: Date.now() })
+                .catch((err) => {
+                  console.error("Failed to record deletion tombstone:", err);
+                });
+            });
           }
           triggerDebouncedAutoSync();
         }

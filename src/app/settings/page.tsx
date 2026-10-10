@@ -17,6 +17,7 @@ import { copyUsage, FEEDBACK_URL, usageSummary } from "@/lib/feedback";
 import { googleCalendarUrl, reminderIcs } from "@/lib/reminder";
 import { dayKey, parseDayKey, rupee } from "@/lib/format";
 import { useCategories, useNow, useRecurring, useSettings } from "@/lib/hooks";
+import { recordLocalDeletion } from "@/lib/sync";
 import type { Category, PaymentMode, SeasonMode, Settings, Tag, ThemePref } from "@/lib/types";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -368,6 +369,7 @@ function CategoriesCard() {
       await db.quickButtons.filter((q) => q.categoryId === c.id).modify({ categoryId: "other" });
       await db.categories.delete(c.id);
     });
+    await recordLocalDeletion("categories", c.id);
     toast({ emoji: "🗑️", message: `Deleted ${c.name}` });
   }
 
