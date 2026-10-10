@@ -24,8 +24,12 @@ export interface Settings {
   lastBackupAt?: number;
   /** "Back up now?" reminder hidden until this time. */
   backupSnoozeUntil?: number;
-  /** Daily reminder time (HH:mm) used for the calendar reminder. */
+  /** Daily reminder time (HH:mm) used for notifications and calendar. Defaults to 21:00 (9pm). */
   reminderTime?: string;
+  /** Whether daily PWA notifications are enabled. */
+  notificationsEnabled?: boolean;
+  /** Last date key (yyyy-MM-dd) when a daily reminder notification was delivered. */
+  lastNotifiedDate?: string;
   /** Last weekly feedback check-in week handled (answered or skipped). */
   feedbackWeekDone?: number;
 }

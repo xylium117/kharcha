@@ -2,7 +2,7 @@
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowUp, Download, Plus, Smartphone, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, BellRing, Download, Plus, Smartphone, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
@@ -17,6 +17,13 @@ import { copyUsage, FEEDBACK_URL, usageSummary } from "@/lib/feedback";
 import { googleCalendarUrl, reminderIcs } from "@/lib/reminder";
 import { dayKey, parseDayKey, rupee } from "@/lib/format";
 import { useCategories, useNow, useRecurring, useSettings } from "@/lib/hooks";
+import {
+  getNotificationPermission,
+  isNotificationSupported,
+  requestNotificationPermission,
+  showDailyReminderNotification,
+  type NotificationPermissionState,
+} from "@/lib/notifications";
 import { recordLocalDeletion } from "@/lib/sync";
 import type { Category, PaymentMode, SeasonMode, Settings, Tag, ThemePref } from "@/lib/types";
 
@@ -446,25 +453,157 @@ function BadgesCard() {
 }
 
 function ReminderCard({ settings }: { settings: Settings }) {
+  const { toast } = useUI();
   const time = settings.reminderTime ?? "21:00";
+  const notificationsEnabled = settings.notificationsEnabled ?? false;
   const appUrl = () => window.location.origin;
+
+  const [permission, setPermission] = useState<NotificationPermissionState>("default");
+  const supported = isNotificationSupported();
+
+  useEffect(() => {
+    setPermission(getNotificationPermission());
+  }, []);
+
+  async function handleToggleNotifications() {
+    if (!supported) return;
+
+    if (permission !== "granted") {
+      const p = await requestNotificationPermission();
+      setPermission(p);
+      if (p === "granted") {
+        await db.settings.update("me", { notificationsEnabled: true });
+        toast({ emoji: "🔔", tone: "good", message: `Daily notifications enabled for ${time}!` });
+        await showDailyReminderNotification(
+          "Kharcha 🦉 · Daily Reminders Active!",
+          `We'll notify you daily at ${time} to log your expenses.`
+        );
+      } else if (p === "denied") {
+        toast({ emoji: "⚠️", tone: "warn", message: "Notifications blocked in browser settings." });
+      }
+      return;
+    }
+
+    const nextState = !notificationsEnabled;
+    await db.settings.update("me", { notificationsEnabled: nextState });
+    toast({
+      emoji: nextState ? "🔔" : "🔕",
+      message: nextState ? `Daily reminder set for ${time}` : "Daily notifications paused",
+    });
+  }
+
+  async function handleTestNotification() {
+    if (permission !== "granted") {
+      await handleToggleNotifications();
+      return;
+    }
+    const sent = await showDailyReminderNotification(
+      "Kharcha 🦉 · Test Reminder",
+      `Stash here! This is how your daily reminder at ${time} will look.`
+    );
+    if (sent) {
+      toast({ emoji: "✨", tone: "good", message: "Test notification sent! Check your notification tray." });
+    } else {
+      toast({ emoji: "⚠️", tone: "warn", message: "Could not send notification. Check system notification settings." });
+    }
+  }
+
   return (
     <Card>
-      <SectionTitle>⏰ Daily reminder</SectionTitle>
-      <p className="mb-3 text-sm text-muted">
-        Get a nudge every evening to log the day. It lives in your calendar, so it rings even when Kharcha is closed.
-      </p>
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="w-32">
-          <Label htmlFor="s-reminder">Time</Label>
-          <Input id="s-reminder" type="time" value={time} onChange={(e) => db.settings.update("me", { reminderTime: e.target.value || "21:00" })} />
-        </div>
-        <Button onClick={() => window.open(googleCalendarUrl(time, appUrl(), new Date()), "_blank", "noopener")}>Add to Google Calendar</Button>
-        <Button variant="ghost" onClick={() => downloadText(reminderIcs(time, appUrl(), new Date()), "kharcha-reminder.ics", "text/calendar")}>
-          Other calendars (.ics)
-        </Button>
+      <div className="flex items-center justify-between">
+        <SectionTitle>⏰ Daily reminder</SectionTitle>
+        {permission === "granted" && notificationsEnabled && (
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-good">
+            <span className="size-2 rounded-full bg-good animate-pulse" />
+            Active
+          </span>
+        )}
       </div>
-      <p className="mt-2 text-xs text-muted">Google Calendar opens with the event filled in – just tap Save.</p>
+
+      <p className="mb-4 text-sm text-muted">
+        Receive a daily nudge at 9:00 PM IST (or your chosen time) to log today&apos;s expenses so nothing slips away.
+      </p>
+
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="w-36">
+            <Label htmlFor="s-reminder">Reminder time</Label>
+            <Input
+              id="s-reminder"
+              type="time"
+              value={time}
+              onChange={(e) => db.settings.update("me", { reminderTime: e.target.value || "21:00" })}
+            />
+          </div>
+
+          {supported ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant={notificationsEnabled && permission === "granted" ? "primary" : "soft"}
+                onClick={handleToggleNotifications}
+                className="gap-2"
+              >
+                {notificationsEnabled && permission === "granted" ? (
+                  <>
+                    <BellRing size={16} /> Notification On ({time})
+                  </>
+                ) : (
+                  <>
+                    <Bell size={16} /> Enable PWA Notification
+                  </>
+                )}
+              </Button>
+
+              {permission === "granted" && (
+                <Button variant="ghost" size="sm" onClick={handleTestNotification}>
+                  Test notification
+                </Button>
+              )}
+            </div>
+          ) : (
+            <span className="rounded-xl bg-bg-soft px-3 py-2 text-xs text-muted">
+              Notifications not supported on this device
+            </span>
+          )}
+        </div>
+
+        {permission === "denied" && (
+          <p className="rounded-2xl border border-bad/20 bg-bad/5 p-3 text-xs text-bad">
+            ⚠️ Notifications are blocked in your browser permissions. Allow notifications for this site to receive daily reminders.
+          </p>
+        )}
+
+        {permission === "granted" && notificationsEnabled && (
+          <div className="rounded-2xl border border-mint/40 bg-mint/20 p-3 text-xs text-ink space-y-1">
+            <p className="font-semibold text-good">🦉 Daily reminder is set for {time}</p>
+            <p className="text-muted">
+              Tapping the notification opens Kharcha directly so you can record your expenses in seconds.
+            </p>
+          </div>
+        )}
+
+        <div className="pt-2 border-t border-border">
+          <p className="mb-2 text-xs font-semibold text-muted">
+            Offline Calendar Fallback (rings via your device calendar):
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => window.open(googleCalendarUrl(time, appUrl(), new Date()), "_blank", "noopener")}
+            >
+              Add to Google Calendar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => downloadText(reminderIcs(time, appUrl(), new Date()), "kharcha-reminder.ics", "text/calendar")}
+            >
+              Export .ics
+            </Button>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }

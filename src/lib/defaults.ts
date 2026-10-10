@@ -47,6 +47,8 @@ export function defaultSettings(name: string, monthlyBudget: number): Settings {
     noSpendDays: [],
     statsVisits: 0,
     guruQuestions: 0,
+    reminderTime: "21:00",
+    notificationsEnabled: false,
     createdAt: Date.now(),
   };
 }

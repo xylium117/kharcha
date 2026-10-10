@@ -27,6 +27,7 @@ import { useBudget, useSettings } from "@/lib/hooks";
 import { postDueRecurring } from "@/lib/recurring";
 import type { BudgetSummary } from "@/lib/budget";
 import type { Expense } from "@/lib/types";
+import { useDailyReminderWatcher } from "@/lib/notifications";
 import { AddExpenseSheet, type AddTab } from "./AddExpenseSheet";
 import { CloudSyncStatus } from "./CloudSyncStatus";
 import { InstallAppPrompt } from "./InstallAppPrompt";
@@ -96,6 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [ready, toast]);
 
   useBadgeWatcher(toast);
+  useDailyReminderWatcher(settings);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator && window.isSecureContext) {
