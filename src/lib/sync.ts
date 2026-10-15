@@ -47,11 +47,67 @@ let lastSyncError: string | null = null;
 let isNewDeviceState = false;
 let isPullingFromCloud = false;
 const localTablesChangedDuringSync = new Set<string>();
+let cloudRefreshStartedForUid: string | null = null;
+let cloudRefreshCompletedForUid: string | null = null;
 let autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
 const subscribers = new Set<() => void>();
 
 function notifySubscribers() {
   subscribers.forEach((cb) => cb());
+}
+
+async function pullCloudData(uid: string): Promise<void> {
+  const refreshedTombstones = await db.deletedRecords.toArray();
+  const pullFilterKeys = new Set<string>();
+  for (const tombstone of refreshedTombstones) {
+    const recordId = tombstone.id.includes(":")
+      ? tombstone.id.split(":").slice(1).join(":")
+      : tombstone.id;
+    pullFilterKeys.add(`${tombstone.table}:${recordId}`);
+    pullFilterKeys.add(tombstone.id);
+  }
+
+  const pulledData: { table: string; items: any[] }[] = [];
+  for (const table of TABLE_NAMES) {
+    const snapshot = await getDocs(collection(firestore, "users", uid, table));
+    if (snapshot.empty) continue;
+
+    const validItems: any[] = [];
+    for (const document of snapshot.docs) {
+      const item = document.data();
+      const docId = String(item.id || item.weekStart || item.key || document.id || "record");
+      if (
+        pullFilterKeys.has(`${table}:${docId}`) ||
+        pullFilterKeys.has(`${table}:${document.id}`) ||
+        pullFilterKeys.has(docId) ||
+        pullFilterKeys.has(document.id)
+      ) {
+        const lingerRef = doc(firestore, "users", uid, table, document.id);
+        deleteDoc(lingerRef).catch((err) => {
+          console.error("Failed to remove remotely deleted record:", err);
+        });
+        continue;
+      }
+      validItems.push(item);
+    }
+    if (validItems.length > 0) pulledData.push({ table, items: validItems });
+  }
+
+  if (pulledData.length === 0) return;
+
+  isPullingFromCloud = true;
+  try {
+    const tablesToLock = TABLE_NAMES.map((name) => db.table(name));
+    await db.transaction("rw", tablesToLock, async () => {
+      for (const { table, items } of pulledData) {
+        if (localTablesChangedDuringSync.has(table)) continue;
+        const dexieTable = (db as any)[table];
+        if (dexieTable) await dexieTable.bulkPut(items);
+      }
+    });
+  } finally {
+    isPullingFromCloud = false;
+  }
 }
 
 /** Record a deletion tombstone locally in a transaction-safe manner */
@@ -69,7 +125,7 @@ export async function recordLocalDeletion(table: string, id: string): Promise<vo
 }
 
 /** Core bidirectional sync logic */
-export async function syncWithCloudCore(): Promise<void> {
+export async function syncWithCloudCore(options: { preferCloud?: boolean } = {}): Promise<void> {
   if (!auth.currentUser) return;
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
   if (isSyncing) {
@@ -77,10 +133,10 @@ export async function syncWithCloudCore(): Promise<void> {
     return;
   }
   const uid = auth.currentUser.uid;
+  const preferCloud = options.preferCloud ?? (cloudRefreshCompletedForUid !== uid);
   isSyncing = true;
   localTablesChangedDuringSync.clear();
   lastSyncError = null;
-  isNewDeviceState = false;
   notifySubscribers();
 
   try {
@@ -150,6 +206,10 @@ export async function syncWithCloudCore(): Promise<void> {
       console.warn("Could not sync remote tombstones:", delErr);
     }
 
+    if (preferCloud) {
+      await pullCloudData(uid);
+    }
+
     // 2. Push local data to cloud (skip if no local data, and never push deleted items)
     const localTombstonesList = await db.deletedRecords.toArray();
     const activeTombstoneKeys = new Set<string>();
@@ -191,69 +251,19 @@ export async function syncWithCloudCore(): Promise<void> {
     }
 
     // 3. Pull remote data down into local Dexie in an atomic transaction
-    const refreshedTombstones = await db.deletedRecords.toArray();
-    const pullFilterKeys = new Set<string>();
-    for (const t of refreshedTombstones) {
-      const recId = t.id.includes(":") ? t.id.split(":").slice(1).join(":") : t.id;
-      pullFilterKeys.add(`${t.table}:${recId}`);
-      pullFilterKeys.add(t.id);
-    }
-
-    const pulledData: { table: string; items: any[] }[] = [];
-    for (const table of TABLE_NAMES) {
-      const colRef = collection(firestore, "users", uid, table);
-      const snapshot = await getDocs(colRef);
-      if (!snapshot.empty) {
-        const validItems: any[] = [];
-        for (const d of snapshot.docs) {
-          const item = d.data();
-          const docId = String(item.id || item.weekStart || (item as any).key || d.id || "record");
-          if (
-            pullFilterKeys.has(`${table}:${docId}`) ||
-            pullFilterKeys.has(`${table}:${d.id}`) ||
-            pullFilterKeys.has(docId) ||
-            pullFilterKeys.has(d.id)
-          ) {
-            // Deleted item found lingering in remote Firestore — delete it
-            try {
-              const lingerRef = doc(firestore, "users", uid, table, d.id);
-              deleteDoc(lingerRef).catch(() => {});
-            } catch {}
-            continue;
-          }
-          validItems.push(item);
-        }
-        if (validItems.length > 0) {
-          pulledData.push({ table, items: validItems });
-        }
-      }
-    }
-
-    if (pulledData.length > 0) {
-      isPullingFromCloud = true;
-      try {
-        const tablesToLock = TABLE_NAMES.map((n) => db.table(n));
-        await db.transaction("rw", tablesToLock, async () => {
-          for (const { table, items } of pulledData) {
-            if (localTablesChangedDuringSync.has(table)) continue;
-            const dexieTable = (db as any)[table];
-            if (dexieTable) {
-              await dexieTable.bulkPut(items);
-            }
-          }
-        });
-      } finally {
-        isPullingFromCloud = false;
-      }
-    }
+    if (!preferCloud) await pullCloudData(uid);
 
     lastSyncTime = new Date();
+    if (preferCloud) cloudRefreshCompletedForUid = uid;
   } catch (err) {
     console.error("AutoSync error:", err);
     lastSyncError = err instanceof Error ? err.message : String(err);
   } finally {
     isSyncing = false;
     localTablesChangedDuringSync.clear();
+    if (!lastSyncError) {
+      isNewDeviceState = (await countAllLocalRecords()) === 0;
+    }
     notifySubscribers();
     if (hasPendingSync) {
       hasPendingSync = false;
@@ -389,14 +399,15 @@ export function useCloudAuth() {
       notifySubscribers();
 
       if (u) {
+        if (cloudRefreshStartedForUid === u.uid) return;
+        cloudRefreshStartedForUid = u.uid;
         const localCount = await countAllLocalRecords();
-        if (localCount === 0) {
-          isNewDeviceState = true;
-          setIsNewDevice(true);
-          notifySubscribers();
-        } else {
-          syncWithCloudCore();
-        }
+        isNewDeviceState = localCount === 0;
+        notifySubscribers();
+        await syncWithCloudCore({ preferCloud: true });
+      } else {
+        cloudRefreshStartedForUid = null;
+        cloudRefreshCompletedForUid = null;
       }
     });
     return () => unsub();
@@ -418,6 +429,8 @@ export function useCloudAuth() {
       isNewDeviceState = false;
       lastSyncTime = null;
       lastSyncError = null;
+      cloudRefreshStartedForUid = null;
+      cloudRefreshCompletedForUid = null;
       notifySubscribers();
     } catch (err) {
       console.error("Logout error:", err);

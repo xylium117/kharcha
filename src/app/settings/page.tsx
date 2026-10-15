@@ -60,6 +60,40 @@ function ProfileCard({ settings }: { settings: Settings }) {
   const [budget, setBudget] = useState(String(settings.monthlyBudget));
   const [startDay, setStartDay] = useState(String(settings.monthStartDay));
   const [acad, setAcad] = useState(String(settings.academicStartMonth));
+  const previousSettings = useRef({
+    name: settings.name,
+    monthlyBudget: settings.monthlyBudget,
+    monthStartDay: settings.monthStartDay,
+    academicStartMonth: settings.academicStartMonth,
+  });
+  useEffect(() => {
+    const previous = previousSettings.current;
+    if (name === previous.name && settings.name !== previous.name) setName(settings.name);
+    if (budget === String(previous.monthlyBudget) && settings.monthlyBudget !== previous.monthlyBudget) {
+      setBudget(String(settings.monthlyBudget));
+    }
+    if (startDay === String(previous.monthStartDay) && settings.monthStartDay !== previous.monthStartDay) {
+      setStartDay(String(settings.monthStartDay));
+    }
+    if (acad === String(previous.academicStartMonth) && settings.academicStartMonth !== previous.academicStartMonth) {
+      setAcad(String(settings.academicStartMonth));
+    }
+    previousSettings.current = {
+      name: settings.name,
+      monthlyBudget: settings.monthlyBudget,
+      monthStartDay: settings.monthStartDay,
+      academicStartMonth: settings.academicStartMonth,
+    };
+  }, [
+    name,
+    budget,
+    startDay,
+    acad,
+    settings.name,
+    settings.monthlyBudget,
+    settings.monthStartDay,
+    settings.academicStartMonth,
+  ]);
   const dirty =
     name !== settings.name || Number(budget) !== settings.monthlyBudget || Number(startDay) !== settings.monthStartDay || Number(acad) !== settings.academicStartMonth;
 
@@ -130,9 +164,16 @@ function SeasonCard({ settings }: { settings: Settings }) {
   const current = budgetFor(settings, period.key);
   const hasOverride = settings.budgetOverrides[period.key] != null;
   const [picked, setPicked] = useState<SeasonMode>(settings.seasonMode);
+  const previousSeasonMode = useRef(settings.seasonMode);
   const [festFund, setFestFund] = useState("1000");
   // The suggested budget follows the picked mode until the user types their own.
   const [overrideEdit, setOverrideEdit] = useState<string | null>(null);
+  useEffect(() => {
+    if (picked === previousSeasonMode.current && settings.seasonMode !== previousSeasonMode.current) {
+      setPicked(settings.seasonMode);
+    }
+    previousSeasonMode.current = settings.seasonMode;
+  }, [picked, settings.seasonMode]);
   const suggested =
     picked === "fest"
       ? settings.monthlyBudget + (Number(festFund) || 0)
