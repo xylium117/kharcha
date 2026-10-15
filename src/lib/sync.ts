@@ -43,8 +43,10 @@ let currentUser: User | null = null;
 let isSyncing = false;
 let hasPendingSync = false;
 let lastSyncTime: Date | null = null;
+let lastSyncError: string | null = null;
 let isNewDeviceState = false;
 let isPullingFromCloud = false;
+const localTablesChangedDuringSync = new Set<string>();
 let autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
 const subscribers = new Set<() => void>();
 
@@ -69,12 +71,15 @@ export async function recordLocalDeletion(table: string, id: string): Promise<vo
 /** Core bidirectional sync logic */
 export async function syncWithCloudCore(): Promise<void> {
   if (!auth.currentUser) return;
+  if (typeof navigator !== "undefined" && !navigator.onLine) return;
   if (isSyncing) {
     hasPendingSync = true;
     return;
   }
   const uid = auth.currentUser.uid;
   isSyncing = true;
+  localTablesChangedDuringSync.clear();
+  lastSyncError = null;
   isNewDeviceState = false;
   notifySubscribers();
 
@@ -186,66 +191,69 @@ export async function syncWithCloudCore(): Promise<void> {
     }
 
     // 3. Pull remote data down into local Dexie in an atomic transaction
-    isPullingFromCloud = true;
-    try {
-      const refreshedTombstones = await db.deletedRecords.toArray();
-      const pullFilterKeys = new Set<string>();
-      for (const t of refreshedTombstones) {
-        const recId = t.id.includes(":") ? t.id.split(":").slice(1).join(":") : t.id;
-        pullFilterKeys.add(`${t.table}:${recId}`);
-        pullFilterKeys.add(t.id);
-      }
+    const refreshedTombstones = await db.deletedRecords.toArray();
+    const pullFilterKeys = new Set<string>();
+    for (const t of refreshedTombstones) {
+      const recId = t.id.includes(":") ? t.id.split(":").slice(1).join(":") : t.id;
+      pullFilterKeys.add(`${t.table}:${recId}`);
+      pullFilterKeys.add(t.id);
+    }
 
-      const pulledData: { table: string; items: any[] }[] = [];
-      for (const table of TABLE_NAMES) {
-        const colRef = collection(firestore, "users", uid, table);
-        const snapshot = await getDocs(colRef);
-        if (!snapshot.empty) {
-          const validItems: any[] = [];
-          for (const d of snapshot.docs) {
-            const item = d.data();
-            const docId = String(item.id || item.weekStart || (item as any).key || d.id || "record");
-            if (
-              pullFilterKeys.has(`${table}:${docId}`) ||
-              pullFilterKeys.has(`${table}:${d.id}`) ||
-              pullFilterKeys.has(docId) ||
-              pullFilterKeys.has(d.id)
-            ) {
-              // Deleted item found lingering in remote Firestore — delete it
-              try {
-                const lingerRef = doc(firestore, "users", uid, table, d.id);
-                deleteDoc(lingerRef).catch(() => {});
-              } catch {}
-              continue;
-            }
-            validItems.push(item);
+    const pulledData: { table: string; items: any[] }[] = [];
+    for (const table of TABLE_NAMES) {
+      const colRef = collection(firestore, "users", uid, table);
+      const snapshot = await getDocs(colRef);
+      if (!snapshot.empty) {
+        const validItems: any[] = [];
+        for (const d of snapshot.docs) {
+          const item = d.data();
+          const docId = String(item.id || item.weekStart || (item as any).key || d.id || "record");
+          if (
+            pullFilterKeys.has(`${table}:${docId}`) ||
+            pullFilterKeys.has(`${table}:${d.id}`) ||
+            pullFilterKeys.has(docId) ||
+            pullFilterKeys.has(d.id)
+          ) {
+            // Deleted item found lingering in remote Firestore — delete it
+            try {
+              const lingerRef = doc(firestore, "users", uid, table, d.id);
+              deleteDoc(lingerRef).catch(() => {});
+            } catch {}
+            continue;
           }
-          if (validItems.length > 0) {
-            pulledData.push({ table, items: validItems });
-          }
+          validItems.push(item);
+        }
+        if (validItems.length > 0) {
+          pulledData.push({ table, items: validItems });
         }
       }
+    }
 
-      if (pulledData.length > 0) {
+    if (pulledData.length > 0) {
+      isPullingFromCloud = true;
+      try {
         const tablesToLock = TABLE_NAMES.map((n) => db.table(n));
         await db.transaction("rw", tablesToLock, async () => {
           for (const { table, items } of pulledData) {
+            if (localTablesChangedDuringSync.has(table)) continue;
             const dexieTable = (db as any)[table];
             if (dexieTable) {
               await dexieTable.bulkPut(items);
             }
           }
         });
+      } finally {
+        isPullingFromCloud = false;
       }
-    } finally {
-      isPullingFromCloud = false;
     }
 
     lastSyncTime = new Date();
   } catch (err) {
     console.error("AutoSync error:", err);
+    lastSyncError = err instanceof Error ? err.message : String(err);
   } finally {
     isSyncing = false;
+    localTablesChangedDuringSync.clear();
     notifySubscribers();
     if (hasPendingSync) {
       hasPendingSync = false;
@@ -271,6 +279,10 @@ if (typeof window !== "undefined") {
     if (table?.hook) {
       table.hook("creating", (primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
+          if (isSyncing) {
+            localTablesChangedDuringSync.add(tableName);
+            hasPendingSync = true;
+          }
           const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
           if (rawId) {
             const tombstoneKey = `${tableName}:${rawId}`;
@@ -284,6 +296,10 @@ if (typeof window !== "undefined") {
       });
       table.hook("updating", (mods: any, primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
+          if (isSyncing) {
+            localTablesChangedDuringSync.add(tableName);
+            hasPendingSync = true;
+          }
           const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
           if (rawId) {
             const tombstoneKey = `${tableName}:${rawId}`;
@@ -297,6 +313,10 @@ if (typeof window !== "undefined") {
       });
       table.hook("deleting", (primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
+          if (isSyncing) {
+            localTablesChangedDuringSync.add(tableName);
+            hasPendingSync = true;
+          }
           const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
           if (rawId) {
             const tombstoneKey = `${tableName}:${rawId}`;
@@ -344,6 +364,7 @@ export function useCloudAuth() {
   const [loading, setLoading] = useState(!currentUser);
   const [syncing, setSyncing] = useState(isSyncing);
   const [lastSync, setLastSync] = useState<Date | null>(lastSyncTime);
+  const [syncError, setSyncError] = useState<string | null>(lastSyncError);
   const [isNewDevice, setIsNewDevice] = useState(isNewDeviceState);
 
   useEffect(() => {
@@ -351,6 +372,7 @@ export function useCloudAuth() {
       setUser(currentUser);
       setSyncing(isSyncing);
       setLastSync(lastSyncTime);
+      setSyncError(lastSyncError);
       setIsNewDevice(isNewDeviceState);
     };
     subscribers.add(update);
@@ -395,6 +417,7 @@ export function useCloudAuth() {
       currentUser = null;
       isNewDeviceState = false;
       lastSyncTime = null;
+      lastSyncError = null;
       notifySubscribers();
     } catch (err) {
       console.error("Logout error:", err);
@@ -411,6 +434,7 @@ export function useCloudAuth() {
     loading,
     syncing,
     lastSync,
+    syncError,
     isNewDevice,
     loginWithGoogle,
     logout,

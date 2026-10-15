@@ -1,12 +1,34 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useCloudAuth } from "@/lib/sync";
 import { Cloud, CloudCheck, CloudDownload, LogIn, LogOut, RefreshCw } from "lucide-react";
 
 export function CloudSyncStatus() {
-  const { user, loading, syncing, lastSync, isNewDevice, loginWithGoogle, logout, syncWithCloud } =
-    useCloudAuth();
+  const {
+    user,
+    loading,
+    syncing,
+    lastSync,
+    syncError,
+    isNewDevice,
+    loginWithGoogle,
+    logout,
+    syncWithCloud,
+  } = useCloudAuth();
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    const updateOnlineStatus = () => setOnline(navigator.onLine);
+    updateOnlineStatus();
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
 
   if (loading) return null;
 
@@ -54,12 +76,25 @@ export function CloudSyncStatus() {
 
         {/* Badge + time */}
         <div className="min-w-0 flex-1">
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
-            <CloudCheck size={9} /> Synced
+          <span
+            className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+              !online
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                : syncError
+                ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+            }`}
+          >
+            {!online || syncError ? <Cloud size={9} /> : <CloudCheck size={9} />}
+            {!online ? "Offline" : syncError ? "Sync issue" : "Synced"}
           </span>
           <div className="mt-0.5 text-[10px] text-muted">
-            {syncing
+            {!online
+              ? "Offline · will sync when online"
+              : syncing
               ? "Syncing…"
+              : syncError
+                ? "Sync failed · tap to retry"
               : lastSync
                 ? lastSync.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                 : "Not synced yet"}
@@ -70,12 +105,15 @@ export function CloudSyncStatus() {
         <div className="flex shrink-0 items-center gap-1">
           <button
             onClick={syncWithCloud}
-            disabled={syncing}
-            title="Sync now"
+            disabled={syncing || !online}
+            title={syncError ?? "Sync now"}
             aria-label="Sync now"
             className="grid size-8 place-items-center rounded-xl text-muted transition hover:bg-bg-soft hover:text-ink disabled:opacity-50"
           >
-            <RefreshCw size={14} className={syncing ? "animate-spin text-accent" : ""} />
+            <RefreshCw
+              size={14}
+              className={syncing && online ? "animate-spin text-accent" : ""}
+            />
           </button>
           <button
             onClick={logout}
@@ -88,7 +126,7 @@ export function CloudSyncStatus() {
         </div>
       </div>
 
-      {isNewDevice && !syncing && (
+      {isNewDevice && !syncing && online && (
         <button
           onClick={syncWithCloud}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent/10 px-3 py-2 text-xs font-semibold text-accent transition hover:bg-accent/20"
