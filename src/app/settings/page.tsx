@@ -540,7 +540,8 @@ function ReminderCard({ settings }: { settings: Settings }) {
     }
     const sent = await showDailyReminderNotification(
       "Kharcha 🦉 · Test Reminder",
-      `Stash here! This is how your daily reminder at ${time} will look.`
+      `Stash here! This is how your daily reminder at ${time} will look.`,
+      { tag: `kharcha-test-${Date.now()}` }
     );
     if (sent) {
       toast({ emoji: "✨", tone: "good", message: "Test notification sent! Check your notification tray." });

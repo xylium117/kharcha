@@ -1,12 +1,13 @@
 import "fake-indexeddb/auto";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "../src/lib/defaults";
-import { db } from "../src/lib/db";
+import { db, TABLE_NAMES } from "../src/lib/db";
 
 const mockState = vi.hoisted(() => ({
   currentUser: { uid: "user-123" },
   cloudSettings: null as Record<string, unknown> | null,
   writes: [] as { path: string; data: Record<string, unknown> }[],
+  reads: 0,
 }));
 
 vi.mock("../src/lib/firebase", () => ({
@@ -33,6 +34,7 @@ vi.mock("firebase/firestore", () => ({
     path: segments.filter((segment): segment is string => typeof segment === "string").join("/"),
   }),
   getDocs: vi.fn(async (ref: { path: string }) => {
+    mockState.reads += 1;
     const docs =
       ref.path.endsWith("/_deleted")
         ? []
@@ -58,6 +60,7 @@ describe("cloud-first startup sync", () => {
     mockState.currentUser = { uid: "user-123" };
     mockState.cloudSettings = null;
     mockState.writes = [];
+    mockState.reads = 0;
     vi.stubGlobal("navigator", { onLine: true });
     await db.open();
     await db.transaction("rw", db.tables, async () => {
@@ -99,5 +102,15 @@ describe("cloud-first startup sync", () => {
       path: "users/user-123/settings/me",
       data: localSettings,
     });
+  });
+
+  it("does not start a redundant sync for concurrent callers", async () => {
+    await Promise.all([
+      syncWithCloudCore({ preferCloud: true }),
+      syncWithCloudCore({ preferCloud: true }),
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(mockState.reads).toBe(TABLE_NAMES.length + 1);
   });
 });

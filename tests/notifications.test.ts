@@ -1,18 +1,23 @@
 import "fake-indexeddb/auto";
-import { describe, expect, it, beforeEach, vi } from "vitest";
-import { KharchaDB, db } from "../src/lib/db";
+import { afterEach, describe, expect, it, beforeEach, vi } from "vitest";
+import { db } from "../src/lib/db";
 import { dayKey } from "../src/lib/format";
 import {
   isNotificationSupported,
   getNotificationPermission,
   hasLoggedExpenseToday,
   checkAndDeliverDailyReminder,
+  showDailyReminderNotification,
 } from "../src/lib/notifications";
 import type { Settings } from "../src/lib/types";
 
 describe("Notifications module", () => {
   beforeEach(async () => {
     await db.expenses.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("identifies notification support environment gracefully", () => {
@@ -62,5 +67,28 @@ describe("Notifications module", () => {
 
     const sent = await checkAndDeliverDailyReminder(mockSettings, false);
     expect(sent).toBe(false);
+  });
+
+  it("shows test notifications through the registered PWA service worker", async () => {
+    const showNotification = vi.fn(async () => {});
+    const registration = { showNotification };
+    vi.stubGlobal("window", { Notification: { permission: "granted" } });
+    vi.stubGlobal("Notification", { permission: "granted" });
+    vi.stubGlobal("navigator", {
+      serviceWorker: {
+        getRegistration: vi.fn(async () => registration),
+        ready: Promise.resolve(registration),
+      },
+    });
+
+    const sent = await showDailyReminderNotification("Test", "PWA test", {
+      tag: "kharcha-test-123",
+    });
+
+    expect(sent).toBe(true);
+    expect(showNotification).toHaveBeenCalledWith(
+      "Test",
+      expect.objectContaining({ body: "PWA test", tag: "kharcha-test-123" }),
+    );
   });
 });

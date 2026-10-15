@@ -128,10 +128,7 @@ export async function recordLocalDeletion(table: string, id: string): Promise<vo
 export async function syncWithCloudCore(options: { preferCloud?: boolean } = {}): Promise<void> {
   if (!auth.currentUser) return;
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
-  if (isSyncing) {
-    hasPendingSync = true;
-    return;
-  }
+  if (isSyncing) return;
   const uid = auth.currentUser.uid;
   const preferCloud = options.preferCloud ?? (cloudRefreshCompletedForUid !== uid);
   isSyncing = true;
@@ -178,28 +175,33 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
       const delSnapshot = await getDocs(delColRef);
       if (!delSnapshot.empty) {
         const remoteTombstones: { id: string; table: string; deletedAt: number }[] = [];
-        for (const docSnap of delSnapshot.docs) {
-          const d = docSnap.data();
-          if (d.table && d.recordId) {
-            const key = `${d.table}:${d.recordId}`;
-            remoteTombstones.push({
-              id: key,
-              table: d.table,
-              deletedAt: d.deletedAt || Date.now(),
-            });
-            // Ensure deleted record is purged locally if still present in local Dexie
-            const localTable = (db as any)[d.table];
-            if (localTable) {
-              await Dexie.ignoreTransaction(async () => {
-                await localTable.delete(d.recordId).catch(() => {});
+        isPullingFromCloud = true;
+        try {
+          for (const docSnap of delSnapshot.docs) {
+            const d = docSnap.data();
+            if (d.table && d.recordId) {
+              const key = `${d.table}:${d.recordId}`;
+              remoteTombstones.push({
+                id: key,
+                table: d.table,
+                deletedAt: d.deletedAt || Date.now(),
               });
+              // Ensure deleted record is purged locally if still present in local Dexie
+              const localTable = (db as any)[d.table];
+              if (localTable) {
+                await Dexie.ignoreTransaction(async () => {
+                  await localTable.delete(d.recordId).catch(() => {});
+                });
+              }
             }
           }
-        }
-        if (remoteTombstones.length > 0) {
-          await Dexie.ignoreTransaction(async () => {
-            await db.deletedRecords.bulkPut(remoteTombstones).catch(() => {});
-          });
+          if (remoteTombstones.length > 0) {
+            await Dexie.ignoreTransaction(async () => {
+              await db.deletedRecords.bulkPut(remoteTombstones).catch(() => {});
+            });
+          }
+        } finally {
+          isPullingFromCloud = false;
         }
       }
     } catch (delErr) {
@@ -253,6 +255,7 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
     // 3. Pull remote data down into local Dexie in an atomic transaction
     if (!preferCloud) await pullCloudData(uid);
 
+    isNewDeviceState = (await countAllLocalRecords()) === 0;
     lastSyncTime = new Date();
     if (preferCloud) cloudRefreshCompletedForUid = uid;
   } catch (err) {
@@ -261,9 +264,6 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
   } finally {
     isSyncing = false;
     localTablesChangedDuringSync.clear();
-    if (!lastSyncError) {
-      isNewDeviceState = (await countAllLocalRecords()) === 0;
-    }
     notifySubscribers();
     if (hasPendingSync) {
       hasPendingSync = false;

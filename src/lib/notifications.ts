@@ -32,16 +32,17 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 /** Delivers a system / PWA notification using ServiceWorker or standard Notification API. */
 export async function showDailyReminderNotification(
   title = "Kharcha 🦉 · Log your expenses",
-  body = "Did you spend anything today? Log it in seconds."
+  body = "Did you spend anything today? Log it in seconds.",
+  { tag = "kharcha-daily-reminder" }: { tag?: string } = {}
 ): Promise<boolean> {
   if (!isNotificationSupported()) return false;
   if (Notification.permission !== "granted") return false;
 
-  const options: NotificationOptions & Record<string, any> = {
+  const options: NotificationOptions & { vibrate?: number[]; renotify?: boolean } = {
     body,
     icon: "/pwa-icon/192",
     badge: "/pwa-icon/192",
-    tag: "kharcha-daily-reminder",
+    tag,
     renotify: true,
     vibrate: [200, 100, 200],
     data: { url: "/" },
@@ -49,14 +50,25 @@ export async function showDailyReminderNotification(
 
   // Try Service Worker registration first (standard for PWAs, persists in OS notification tray)
   if ("serviceWorker" in navigator) {
+    let readyTimeout: ReturnType<typeof setTimeout> | undefined;
     try {
-      const reg = await navigator.serviceWorker.ready;
-      if (reg && "showNotification" in reg) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const reg =
+        registration ??
+        (await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise<undefined>((resolve) => {
+            readyTimeout = setTimeout(() => resolve(undefined), 3000);
+          }),
+        ]));
+      if (reg && typeof reg.showNotification === "function") {
         await reg.showNotification(title, options);
         return true;
       }
     } catch (e) {
       console.warn("ServiceWorker showNotification failed, falling back to Notification constructor:", e);
+    } finally {
+      if (readyTimeout) clearTimeout(readyTimeout);
     }
   }
 
