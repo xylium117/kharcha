@@ -533,23 +533,6 @@ function ReminderCard({ settings }: { settings: Settings }) {
     });
   }
 
-  async function handleTestNotification() {
-    if (permission !== "granted") {
-      await handleToggleNotifications();
-      return;
-    }
-    const sent = await showDailyReminderNotification(
-      "Kharcha 🦉 · Test Reminder",
-      `Stash here! This is how your daily reminder at ${time} will look.`,
-      { tag: `kharcha-test-${Date.now()}` }
-    );
-    if (sent) {
-      toast({ emoji: "✨", tone: "good", message: "Test notification sent! Check your notification tray." });
-    } else {
-      toast({ emoji: "⚠️", tone: "warn", message: "Could not send notification. Check system notification settings." });
-    }
-  }
-
   return (
     <Card>
       <div className="flex items-center justify-between">
@@ -596,11 +579,6 @@ function ReminderCard({ settings }: { settings: Settings }) {
                 )}
               </Button>
 
-              {permission === "granted" && (
-                <Button variant="ghost" size="sm" onClick={handleTestNotification}>
-                  Test notification
-                </Button>
-              )}
             </div>
           ) : (
             <span className="rounded-xl bg-bg-soft px-3 py-2 text-xs text-muted">

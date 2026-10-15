@@ -10,6 +10,7 @@ import {
   collection,
   doc,
   getDocs,
+  onSnapshot,
   writeBatch,
   deleteDoc,
 } from "firebase/firestore";
@@ -46,14 +47,122 @@ let lastSyncTime: Date | null = null;
 let lastSyncError: string | null = null;
 let isNewDeviceState = false;
 let isPullingFromCloud = false;
+let cloudPullDepth = 0;
 const localTablesChangedDuringSync = new Set<string>();
+const tablesPendingUpload = new Set<string>();
+const tableChangeVersions = new Map<string, number>();
 let cloudRefreshStartedForUid: string | null = null;
 let cloudRefreshCompletedForUid: string | null = null;
 let autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
+let cloudListenerUnsubscribers: (() => void)[] = [];
 const subscribers = new Set<() => void>();
 
 function notifySubscribers() {
   subscribers.forEach((cb) => cb());
+}
+
+function beginCloudPull() {
+  cloudPullDepth += 1;
+  isPullingFromCloud = true;
+}
+
+function endCloudPull() {
+  cloudPullDepth = Math.max(0, cloudPullDepth - 1);
+  isPullingFromCloud = cloudPullDepth > 0;
+}
+
+function markTablePendingUpload(table: string) {
+  tablesPendingUpload.add(table);
+  tableChangeVersions.set(table, (tableChangeVersions.get(table) ?? 0) + 1);
+  if (isSyncing) {
+    localTablesChangedDuringSync.add(table);
+    hasPendingSync = true;
+  }
+}
+
+function stopCloudListeners() {
+  cloudListenerUnsubscribers.forEach((unsubscribe) => unsubscribe());
+  cloudListenerUnsubscribers = [];
+}
+
+function startCloudListeners(uid: string) {
+  stopCloudListeners();
+  for (const table of TABLE_NAMES) {
+    const unsubscribe = onSnapshot(
+      collection(firestore, "users", uid, table),
+      async (snapshot) => {
+        if (snapshot.docChanges().length === 0) return;
+        beginCloudPull();
+        try {
+          await db.transaction("rw", db.table(table), async () => {
+            const dexieTable = (db as any)[table];
+            for (const change of snapshot.docChanges()) {
+              if (change.type === "removed") {
+                await dexieTable.delete(change.doc.id);
+              } else {
+                await dexieTable.put(change.doc.data());
+              }
+            }
+          });
+          lastSyncError = null;
+          lastSyncTime = new Date();
+          notifySubscribers();
+        } catch (err) {
+          console.error(`Failed to apply cloud changes for ${table}:`, err);
+          lastSyncError = err instanceof Error ? err.message : String(err);
+          notifySubscribers();
+        } finally {
+          endCloudPull();
+        }
+      },
+      (err) => {
+        console.error(`Cloud listener failed for ${table}:`, err);
+        lastSyncError = err.message;
+        notifySubscribers();
+      },
+    );
+    cloudListenerUnsubscribers.push(unsubscribe);
+  }
+
+  const unsubscribeDeletions = onSnapshot(
+    collection(firestore, "users", uid, "_deleted"),
+    async (snapshot) => {
+      const deleted = snapshot.docs.map((document) => document.data())
+        .filter((item) => typeof item.table === "string" && typeof item.recordId === "string");
+      if (deleted.length === 0) return;
+
+      beginCloudPull();
+      try {
+        await Dexie.ignoreTransaction(async () => {
+          await db.deletedRecords.bulkPut(
+            deleted.map((item) => ({
+              id: `${item.table}:${item.recordId}`,
+              table: item.table,
+              deletedAt: item.deletedAt || Date.now(),
+            })),
+          );
+        });
+        await Promise.all(
+          deleted.map(async (item) => {
+            const localTable = (db as any)[item.table];
+            if (localTable) await localTable.delete(item.recordId);
+          }),
+        );
+      } catch (err) {
+        console.error("Failed to apply cloud deletions:", err);
+        lastSyncError = err instanceof Error ? err.message : String(err);
+        notifySubscribers();
+      } finally {
+        endCloudPull();
+      }
+    },
+    (err) => {
+      console.error("Cloud deletion listener failed:", err);
+      lastSyncError = err.message;
+      notifySubscribers();
+    },
+  );
+  cloudListenerUnsubscribers.push(unsubscribeDeletions);
 }
 
 async function pullCloudData(uid: string): Promise<void> {
@@ -67,9 +176,12 @@ async function pullCloudData(uid: string): Promise<void> {
     pullFilterKeys.add(tombstone.id);
   }
 
+  const snapshots = await Promise.all(
+    TABLE_NAMES.map((table) => getDocs(collection(firestore, "users", uid, table))),
+  );
   const pulledData: { table: string; items: any[] }[] = [];
-  for (const table of TABLE_NAMES) {
-    const snapshot = await getDocs(collection(firestore, "users", uid, table));
+  for (const [index, table] of TABLE_NAMES.entries()) {
+    const snapshot = snapshots[index];
     if (snapshot.empty) continue;
 
     const validItems: any[] = [];
@@ -95,7 +207,7 @@ async function pullCloudData(uid: string): Promise<void> {
 
   if (pulledData.length === 0) return;
 
-  isPullingFromCloud = true;
+  beginCloudPull();
   try {
     const tablesToLock = TABLE_NAMES.map((name) => db.table(name));
     await db.transaction("rw", tablesToLock, async () => {
@@ -106,7 +218,7 @@ async function pullCloudData(uid: string): Promise<void> {
       }
     });
   } finally {
-    isPullingFromCloud = false;
+    endCloudPull();
   }
 }
 
@@ -121,11 +233,14 @@ export async function recordLocalDeletion(table: string, id: string): Promise<vo
       deletedAt: Date.now(),
     });
   });
+  markTablePendingUpload(table);
   triggerDebouncedAutoSync(500);
 }
 
 /** Core bidirectional sync logic */
-export async function syncWithCloudCore(options: { preferCloud?: boolean } = {}): Promise<void> {
+export async function syncWithCloudCore(
+  options: { preferCloud?: boolean; uploadAll?: boolean; refreshCloud?: boolean } = {},
+): Promise<void> {
   if (!auth.currentUser) return;
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
   if (isSyncing) return;
@@ -137,6 +252,13 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
   notifySubscribers();
 
   try {
+    if (options.uploadAll || preferCloud) {
+      TABLE_NAMES.forEach((table) => tablesPendingUpload.add(table));
+    }
+    const uploadVersions = new Map(
+      [...tablesPendingUpload].map((table) => [table, tableChangeVersions.get(table) ?? 0]),
+    );
+
     // 1. Delete records from cloud that were deleted locally
     const tombstones = await db.deletedRecords.toArray();
     if (tombstones.length > 0) {
@@ -175,7 +297,7 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
       const delSnapshot = await getDocs(delColRef);
       if (!delSnapshot.empty) {
         const remoteTombstones: { id: string; table: string; deletedAt: number }[] = [];
-        isPullingFromCloud = true;
+        beginCloudPull();
         try {
           for (const docSnap of delSnapshot.docs) {
             const d = docSnap.data();
@@ -201,7 +323,7 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
             });
           }
         } finally {
-          isPullingFromCloud = false;
+          endCloudPull();
         }
       }
     } catch (delErr) {
@@ -221,9 +343,9 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
       activeTombstoneKeys.add(t.id);
     }
 
-    const localCount = await countAllLocalRecords();
-    if (localCount > 0) {
-      for (const table of TABLE_NAMES) {
+    if (uploadVersions.size > 0) {
+      const commits: Promise<void>[] = [];
+      for (const table of uploadVersions.keys()) {
         const dexieTable = (db as any)[table];
         if (!dexieTable) continue;
         const localItems = await dexieTable.toArray();
@@ -247,13 +369,19 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
             const docRef = doc(firestore, "users", uid, table, docId);
             batch.set(docRef, sanitizeForFirestore(item), { merge: true });
           }
-          await batch.commit();
+          commits.push(batch.commit());
+        }
+      }
+      await Promise.all(commits);
+      for (const [table, version] of uploadVersions) {
+        if ((tableChangeVersions.get(table) ?? 0) === version) {
+          tablesPendingUpload.delete(table);
         }
       }
     }
 
     // 3. Pull remote data down into local Dexie in an atomic transaction
-    if (!preferCloud) await pullCloudData(uid);
+    if (options.refreshCloud && !preferCloud) await pullCloudData(uid);
 
     isNewDeviceState = (await countAllLocalRecords()) === 0;
     lastSyncTime = new Date();
@@ -272,8 +400,8 @@ export async function syncWithCloudCore(options: { preferCloud?: boolean } = {})
   }
 }
 
-/** Schedules an automatic sync debounced by 2.5 seconds */
-export function triggerDebouncedAutoSync(delayMs = 2500) {
+/** Schedules an automatic sync shortly after local data changes. */
+export function triggerDebouncedAutoSync(delayMs = 500) {
   if (isPullingFromCloud || !auth.currentUser) return;
   if (autoSyncTimer) clearTimeout(autoSyncTimer);
   autoSyncTimer = setTimeout(() => {
@@ -289,10 +417,7 @@ if (typeof window !== "undefined") {
     if (table?.hook) {
       table.hook("creating", (primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
-          if (isSyncing) {
-            localTablesChangedDuringSync.add(tableName);
-            hasPendingSync = true;
-          }
+          markTablePendingUpload(tableName);
           const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
           if (rawId) {
             const tombstoneKey = `${tableName}:${rawId}`;
@@ -306,10 +431,7 @@ if (typeof window !== "undefined") {
       });
       table.hook("updating", (mods: any, primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
-          if (isSyncing) {
-            localTablesChangedDuringSync.add(tableName);
-            hasPendingSync = true;
-          }
+          markTablePendingUpload(tableName);
           const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
           if (rawId) {
             const tombstoneKey = `${tableName}:${rawId}`;
@@ -323,10 +445,7 @@ if (typeof window !== "undefined") {
       });
       table.hook("deleting", (primKey: any, obj: any) => {
         if (!isPullingFromCloud) {
-          if (isSyncing) {
-            localTablesChangedDuringSync.add(tableName);
-            hasPendingSync = true;
-          }
+          markTablePendingUpload(tableName);
           const rawId = String(obj?.id || obj?.weekStart || (obj as any)?.key || primKey || "");
           if (rawId) {
             const tombstoneKey = `${tableName}:${rawId}`;
@@ -344,24 +463,13 @@ if (typeof window !== "undefined") {
     }
   });
 
-  // 2. Background recurring timer: Sync every 2.5 minutes
-  setInterval(() => {
-    if (auth.currentUser && !isSyncing && typeof navigator !== "undefined" && navigator.onLine) {
-      syncWithCloudCore();
-    }
-  }, 150000);
-
-  // 3. Tab Visibility / Window Focus: Sync when user switches back to the tab
+  // Push local edits when the app returns to the foreground.
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible" && auth.currentUser && !isSyncing) {
-      const now = Date.now();
-      if (!lastSyncTime || now - lastSyncTime.getTime() > 45000) {
-        syncWithCloudCore();
-      }
+      syncWithCloudCore();
     }
   });
 
-  // 4. Network recovery: Sync immediately when regaining connectivity
   window.addEventListener("online", () => {
     if (auth.currentUser && !isSyncing) {
       syncWithCloudCore();
@@ -404,10 +512,14 @@ export function useCloudAuth() {
         const localCount = await countAllLocalRecords();
         isNewDeviceState = localCount === 0;
         notifySubscribers();
-        await syncWithCloudCore({ preferCloud: true });
+        await syncWithCloudCore({ preferCloud: true, uploadAll: true });
+        startCloudListeners(u.uid);
       } else {
+        stopCloudListeners();
         cloudRefreshStartedForUid = null;
         cloudRefreshCompletedForUid = null;
+        tablesPendingUpload.clear();
+        tableChangeVersions.clear();
       }
     });
     return () => unsub();
@@ -431,6 +543,9 @@ export function useCloudAuth() {
       lastSyncError = null;
       cloudRefreshStartedForUid = null;
       cloudRefreshCompletedForUid = null;
+      stopCloudListeners();
+      tablesPendingUpload.clear();
+      tableChangeVersions.clear();
       notifySubscribers();
     } catch (err) {
       console.error("Logout error:", err);
@@ -439,7 +554,7 @@ export function useCloudAuth() {
   }, []);
 
   const syncWithCloud = useCallback(async () => {
-    await syncWithCloudCore();
+    await syncWithCloudCore({ refreshCloud: true });
   }, []);
 
   return {
