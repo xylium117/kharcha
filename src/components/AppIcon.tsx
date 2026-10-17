@@ -31,6 +31,8 @@ import {
   faBan,
   faCoins,
   faChartLine,
+  faHouse,
+  faChampagneGlasses,
 } from "@fortawesome/free-solid-svg-icons";
 
 // Lucide outline/fallback icons
@@ -41,10 +43,12 @@ import {
   Award,
   Banknote,
   BarChart3,
+  BookOpen,
   Calendar,
   CalendarDays,
   Download,
   FileText,
+  Home,
   Inbox,
   Lightbulb,
   Lock,
@@ -173,11 +177,13 @@ const ICON_MAP: Record<string, IconConfig> = {
   "trend-down": { lucideIcon: TrendingDown, color: "#4EA8DE" },
   "📈": { faIcon: faChartLine, color: "#06D6A0" },
 
-  // UI Icons
-  "🌤️": { lucideIcon: SunMedium, color: "#FFD166" },
-  normal: { lucideIcon: SunMedium, color: "#FFD166" },
-  "🎉": { lucideIcon: PartyPopper, color: "#B388FF" },
-  fest: { lucideIcon: PartyPopper, color: "#B388FF" },
+  // Semester Mode (Solid Icons)
+  "🌤️": { faIcon: faSun, color: "#F59E0B" },
+  normal: { faIcon: faSun, color: "#F59E0B" },
+  "🎉": { faIcon: faChampagneGlasses, color: "#DB2777" },
+  fest: { faIcon: faChampagneGlasses, color: "#DB2777" },
+  exam: { faIcon: faGraduationCap, color: "#7C3AED" },
+  home: { faIcon: faHouse, color: "#0D9488" },
   "🔍": { lucideIcon: Search, color: "#9D86F0" },
   search: { lucideIcon: Search, color: "#9D86F0" },
   "🗓️": { lucideIcon: Calendar, color: "#4EA8DE" },

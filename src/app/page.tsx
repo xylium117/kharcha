@@ -2,7 +2,7 @@
 
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowRight, BookOpen, CalendarDays, Check, Download, FileText, Flame, Home, Medal, Moon, PartyPopper, PiggyBank, Receipt, Repeat, Send, ShieldCheck, Target, Trophy, Zap } from "lucide-react";
+import { ArrowDown, ArrowRight, CalendarDays, Check, Download, FileText, Flame, GraduationCap, Home, Medal, Moon, PartyPopper, PiggyBank, Receipt, Repeat, Send, ShieldCheck, Target, Trophy, Zap } from "lucide-react";
 import { AppIcon } from "@/components/AppIcon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +29,7 @@ import { WasteAuditModal, ChallengesModal } from "@/components/WasteAndChallenge
 
 const SEASON_BANNER = {
   normal: null,
-  exam: { icon: BookOpen, text: "Exam season · Essentials first" },
+  exam: { icon: GraduationCap, text: "Exam season · Essentials first" },
   fest: { icon: PartyPopper, text: "Fest mode · Extra fund active" },
   home: { icon: Home, text: "Home trip · Lower spend mode" },
 };
