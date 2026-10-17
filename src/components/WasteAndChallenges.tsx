@@ -3,11 +3,12 @@
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertTriangle, TrendingDown, Flame, Award, X } from "lucide-react";
+import { AlertTriangle, TrendingDown, Flame, Award, X, CheckCircle2, Sparkles } from "lucide-react";
 import { db } from "@/lib/db";
-import { useCategories, useNow, useSettings } from "@/lib/hooks";
+import { useCategories, useExpenses, useNow, useSettings } from "@/lib/hooks";
 import { getPeriod, inRange, tagTotals } from "@/lib/budget";
-import { rupee } from "@/lib/format";
+import { dayKey, rupee } from "@/lib/format";
+import { buildDayMap, underLimitStreak } from "@/lib/streaks";
 import { Button, Card, SectionTitle } from "@/components/ui";
 import { celebrate } from "@/lib/confetti";
 
@@ -237,9 +238,90 @@ interface ChallengesProps {
 export function ChallengesModal({ onClose }: ChallengesProps) {
   const settings = useSettings();
   const now = useNow();
+  const expenses = useExpenses() ?? [];
   const [completing, setCompleting] = useState<string | null>(null);
 
   const completed = new Set(settings?.completedChallenges ?? []);
+
+  // ─── Automated Challenge Detection ─────────────────────────────────────────
+  const autoStatus = useMemo(() => {
+    // 1. no-zomato-7
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    const foodAppRegex = /zomato|swiggy|blinkit|zepto|instamart|eatclub|domino/i;
+    const foodOrders = expenses.filter(
+      (e) => e.ts >= sevenDaysAgo.getTime() && (foodAppRegex.test(e.title) || (e.note && foodAppRegex.test(e.note))),
+    );
+    const daysWithFoodOrder = new Set(foodOrders.map((e) => dayKey(new Date(e.ts))));
+    const zomatoCleanDays = Math.max(0, 7 - daysWithFoodOrder.size);
+    const zomatoPassed = zomatoCleanDays >= 7;
+
+    // 2. weekend-under-300
+    const d = now.getDay();
+    const daysSinceSat = (d + 1) % 7;
+    const sat = new Date(now);
+    sat.setDate(sat.getDate() - daysSinceSat);
+    sat.setHours(0, 0, 0, 0);
+    const sun = new Date(sat);
+    sun.setDate(sun.getDate() + 1);
+    sun.setHours(23, 59, 59, 999);
+    const weekendExpenses = expenses.filter((e) => e.ts >= sat.getTime() && e.ts <= sun.getTime());
+    const weekendSpend = weekendExpenses.reduce((s, e) => s + e.amount, 0);
+    const weekendPassed = weekendSpend <= 300;
+
+    // 3. 5-no-spend-days
+    const period = getPeriod(now, settings?.monthStartDay ?? 1);
+    const monthNoSpend = (settings?.noSpendDays ?? []).filter((dk) => {
+      const [y, m, day] = dk.split("-").map(Number);
+      const date = new Date(y, m - 1, day);
+      return date >= period.start && date < period.nextStart;
+    }).length;
+    const fiveNoSpendPassed = monthNoSpend >= 5;
+
+    // 4. no-wants-3
+    const threeDaysAgo = new Date(now);
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    threeDaysAgo.setHours(0, 0, 0, 0);
+    const wantExpenses = expenses.filter((e) => e.ts >= threeDaysAgo.getTime() && e.tag === "want");
+    const daysWithWants = new Set(wantExpenses.map((e) => dayKey(new Date(e.ts))));
+    const wantsCleanDays = Math.max(0, 3 - daysWithWants.size);
+    const wantsPassed = wantsCleanDays >= 3;
+
+    // 5. under-daily-5
+    const dayMap = buildDayMap(expenses, settings?.noSpendDays ?? []);
+    const underStreak = settings ? underLimitStreak(dayMap, settings, now) : 0;
+    const underDailyPassed = underStreak >= 5;
+
+    return {
+      "no-zomato-7": {
+        passed: zomatoPassed,
+        progress: `${zomatoCleanDays}/7 days clean`,
+        pct: Math.round((zomatoCleanDays / 7) * 100),
+      },
+      "weekend-under-300": {
+        passed: weekendPassed,
+        progress: `${rupee(weekendSpend)} / ₹300 spent`,
+        pct: Math.min(100, Math.round((weekendSpend / 300) * 100)),
+        isGood: weekendSpend <= 300,
+      },
+      "5-no-spend-days": {
+        passed: fiveNoSpendPassed,
+        progress: `${monthNoSpend}/5 no-spend days`,
+        pct: Math.round((Math.min(monthNoSpend, 5) / 5) * 100),
+      },
+      "no-wants-3": {
+        passed: wantsPassed,
+        progress: `${wantsCleanDays}/3 days clean`,
+        pct: Math.round((wantsCleanDays / 3) * 100),
+      },
+      "under-daily-5": {
+        passed: underDailyPassed,
+        progress: `${Math.min(underStreak, 5)}/5 days under limit`,
+        pct: Math.round((Math.min(underStreak, 5) / 5) * 100),
+      },
+    } as Record<string, { passed: boolean; progress: string; pct: number; isGood?: boolean }>;
+  }, [expenses, now, settings]);
 
   async function completeChallenge(id: string) {
     if (!settings || completed.has(id)) return;
@@ -264,8 +346,12 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
       >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold">🏆 Mini Savings Challenges</h2>
-            <p className="text-sm text-[var(--muted)]">{completed.size}/{CHALLENGES.length} completed</p>
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              🏆 Mini Savings Challenges
+            </h2>
+            <p className="text-sm text-[var(--muted)]">
+              {completed.size}/{CHALLENGES.length} challenges claimed · auto-evaluated
+            </p>
           </div>
           <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--bg-soft)]">
             <X size={16} />
@@ -274,14 +360,20 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
 
         <ul className="space-y-3">
           {CHALLENGES.map((ch) => {
-            const done = completed.has(ch.id);
+            const isSaved = completed.has(ch.id);
+            const auto = autoStatus[ch.id];
+            const isAutoCompleted = !!auto?.passed;
+            const done = isSaved || isAutoCompleted;
+
             return (
               <li
                 key={ch.id}
                 className={`rounded-2xl border p-4 transition-all ${
-                  done
+                  isSaved
                     ? "border-[var(--accent)]/40 bg-[var(--accent-soft)]"
-                    : "border-[var(--line)] bg-[var(--bg-soft)]"
+                    : isAutoCompleted
+                      ? "border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20"
+                      : "border-[var(--line)] bg-[var(--bg-soft)]"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -289,29 +381,63 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-sm">{ch.name}</h3>
-                      {done && (
+                      {isSaved ? (
                         <span className="text-xs font-semibold text-[var(--accent)] flex items-center gap-1">
-                          <Award size={12} /> Done!
+                          <Award size={12} /> Claimed!
                         </span>
-                      )}
+                      ) : isAutoCompleted ? (
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">
+                          <Sparkles size={11} /> Auto-Detected!
+                        </span>
+                      ) : null}
                     </div>
                     <p className="text-xs text-[var(--muted)] mt-0.5">{ch.description}</p>
-                    <div className="mt-2 flex items-center gap-2">
+
+                    {/* Progress Bar & Status */}
+                    {auto && (
+                      <div className="mt-2.5">
+                        <div className="flex justify-between items-center text-xs mb-1">
+                          <span className="font-semibold text-[var(--ink)]">
+                            {isAutoCompleted ? "Goal achieved!" : auto.progress}
+                          </span>
+                          <span className="text-[var(--muted)] num">{auto.pct}%</span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-[var(--bg)] overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              isAutoCompleted ? "bg-emerald-500" : "bg-[var(--accent)]"
+                            }`}
+                            style={{ width: `${auto.pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-between gap-2">
                       <span className="rounded-full bg-[var(--bg)] px-2 py-0.5 text-xs font-medium text-[var(--muted)]">
                         {ch.days === 2 ? "Weekend" : ch.days === 30 ? "Monthly" : `${ch.days} days`}
                       </span>
-                      {!done ? (
+
+                      {!isSaved ? (
                         <button
                           onClick={() => completeChallenge(ch.id)}
                           disabled={completing === ch.id}
-                          className="rounded-full bg-[var(--accent)] px-3 py-0.5 text-xs font-semibold text-white dark:text-[var(--bg)] hover:opacity-90 transition disabled:opacity-50"
+                          className={`rounded-full px-3 py-1 text-xs font-semibold transition active:scale-95 disabled:opacity-50 ${
+                            isAutoCompleted
+                              ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-soft"
+                              : "bg-[var(--accent)] text-white dark:text-[var(--bg)] hover:opacity-90"
+                          }`}
                         >
-                          {completing === ch.id ? "🎉 Marking…" : "Mark complete!"}
+                          {completing === ch.id
+                            ? "🎉 Claiming…"
+                            : isAutoCompleted
+                              ? "Claim Badge 🎉"
+                              : "Mark Complete"}
                         </button>
                       ) : (
                         <button
                           onClick={() => uncompleteChallenge(ch.id)}
-                          className="rounded-full border border-[var(--line)] px-3 py-0.5 text-xs font-medium text-[var(--muted)] hover:text-[var(--bad)] transition"
+                          className="rounded-full border border-[var(--line)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--muted)] hover:text-[var(--bad)] transition"
                         >
                           Undo
                         </button>
@@ -324,8 +450,11 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
           })}
         </ul>
 
-        <div className="mt-4 rounded-2xl bg-[var(--bg-soft)] p-3 text-xs text-[var(--muted)]">
-          💡 Challenges are self-reported. Tap "Mark complete!" when you've genuinely finished the challenge for your badge and bragging rights!
+        <div className="mt-4 rounded-2xl bg-[var(--bg-soft)] p-3 text-xs text-[var(--muted)] flex items-start gap-2">
+          <Sparkles size={14} className="shrink-0 mt-0.5 text-[var(--accent)]" />
+          <span>
+            <b>Live Auto-Detection:</b> Progress is calculated automatically from your expenses and daily check-ins. When you finish a challenge, tap <b>Claim Badge</b> to add it to your collection!
+          </span>
         </div>
       </div>
     </div>

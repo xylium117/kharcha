@@ -24,11 +24,13 @@ import { dayKey, rupee } from "@/lib/format";
 import { useCategoryMap, useContributions, useExpenses, useGoals, useNow, useSettings } from "@/lib/hooks";
 import { buildDayMap, loggingStreak, underLimitStreak } from "@/lib/streaks";
 
+import { WasteAuditModal, ChallengesModal } from "@/components/WasteAndChallenges";
+
 const SEASON_BANNER = {
   normal: null,
-  exam: { emoji: "📚", text: "Exam season – food, notes & travel first. Stash will be strict about fun spends." },
-  fest: { emoji: "🎉", text: "Fest mode – enjoy! Your fest fund is included in this month's budget." },
-  home: { emoji: "🏠", text: "Home trip – lower budget this month. Perfect time to stash some savings." },
+  exam: { emoji: "📚", text: "Exam season · Essentials first" },
+  fest: { emoji: "🎉", text: "Fest mode · Extra fund active" },
+  home: { emoji: "🏠", text: "Home trip · Lower spend mode" },
 };
 
 const MOOD_LINE = {
@@ -63,6 +65,8 @@ export default function Dashboard() {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const [showAddMoney, setShowAddMoney] = useState(false);
   const [addMoneyKey, setAddMoneyKey] = useState(0);
+  const [showWasteAudit, setShowWasteAudit] = useState(false);
+  const [showChallenges, setShowChallenges] = useState(false);
 
   const streaks = useMemo(() => {
     if (!settings || !expenses) return { log: 0, under: 0, todayActive: false };
@@ -163,9 +167,9 @@ export default function Dashboard() {
       </div>
 
       {banner && (
-        <div className="flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-sm">
-          <span className="text-xl">{banner.emoji}</span>
-          <span>{banner.text}</span>
+        <div className="flex items-center gap-2.5 rounded-2xl border border-line bg-card px-3.5 py-2 text-xs sm:text-sm">
+          <span className="text-base sm:text-lg">{banner.emoji}</span>
+          <span className="font-semibold">{banner.text}</span>
         </div>
       )}
 
@@ -173,93 +177,78 @@ export default function Dashboard() {
         const cat = cats.get(catId);
         const isOver = spent >= cap;
         return (
-          <div key={catId} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${isOver ? "border-bad/30 bg-bad/5 text-bad" : "border-warn/30 bg-[#fff4dc] text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]"}`}>
-            <span className="text-xl">{cat?.emoji ?? "🏷️"}</span>
-            <span className="flex-1">
-              <b>{cat?.name ?? catId}</b> {isOver ? "over" : "near"} its monthly cap –{" "}
-              {rupee(spent)} / {rupee(cap)} ({Math.round((spent / cap) * 100)}%)
+          <div key={catId} className={`flex items-center gap-2.5 rounded-2xl border px-3.5 py-2 text-xs sm:text-sm ${isOver ? "border-bad/30 bg-bad/5 text-bad" : "border-warn/30 bg-[#fff4dc] text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]"}`}>
+            <span className="text-base sm:text-lg">{cat?.emoji ?? "🏷️"}</span>
+            <span className="flex-1 truncate">
+              <b>{cat?.name ?? catId}</b> {isOver ? "exceeded cap" : "near cap"} ({rupee(spent)} / {rupee(cap)})
             </span>
           </div>
         );
       })}
 
-
       {backupDue(settings, now.getTime()) && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-warn/30 bg-[#fff4dc] px-4 py-3 text-sm text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]">
-          <span className="text-xl">💾</span>
-          <span className="min-w-0 flex-1">
-            {settings.lastBackupAt
-              ? `Last backup ${formatDistanceToNowStrict(settings.lastBackupAt)} ago.`
-              : "You haven't backed up yet."}{" "}
-            Your data lives only on this device – a backup file keeps it safe.
-          </span>
-          <span className="flex gap-2">
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-warn/30 bg-[#fff4dc] px-3.5 py-2.5 text-xs text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">💾</span>
+            <span className="truncate"><b>Backup due</b> · Save data offline</span>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
             <button
               onClick={async () => {
                 await backupNow();
-                toast({ emoji: "💾", tone: "good", message: "Backup saved to your Downloads" });
+                toast({ emoji: "💾", tone: "good", message: "Backup saved" });
               }}
-              className="h-9 rounded-full bg-[#7a4b00] px-3 text-xs font-bold text-white dark:bg-[#ffd98a] dark:text-[#3a2e10]"
+              className="h-7 rounded-full bg-[#7a4b00] px-2.5 text-[11px] font-bold text-white dark:bg-[#ffd98a] dark:text-[#3a2e10]"
             >
-              Back up now
+              Back up
             </button>
             <button
               onClick={() => db.settings.update("me", { backupSnoozeUntil: now.getTime() + 3 * 24 * 60 * 60 * 1000 })}
-              className="h-9 rounded-full px-3 text-xs font-bold"
+              className="h-7 rounded-full px-2 text-[11px] font-bold"
             >
               Later
             </button>
-          </span>
+          </div>
         </div>
       )}
 
       {FEEDBACK_URL && week >= 2 && (settings.feedbackWeekDone ?? 0) < week && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm">
-          <span className="text-xl">📝</span>
-          <span className="min-w-0 flex-1">
-            <b>Week {week} check-in:</b> 2 minutes to say what worked and what annoyed you?
-          </span>
-          <span className="flex flex-wrap gap-2">
-            <button
-              onClick={async () =>
-                toast(
-                  (await copyUsage())
-                    ? { emoji: "📋", message: "Usage counts copied – paste them into the form" }
-                    : { emoji: "⚠️", tone: "warn", message: "Couldn't copy – you can skip this part" },
-                )
-              }
-              className="h-9 rounded-full bg-card px-3 text-xs font-bold"
-            >
-              1. Copy my usage
-            </button>
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-accent/30 bg-accent-soft px-3.5 py-2.5 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">📝</span>
+            <span className="truncate"><b>Week {week} check-in</b> (2 mins)</span>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
             <a
               href={FEEDBACK_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => db.settings.update("me", { feedbackWeekDone: week })}
-              className="grid h-9 place-items-center rounded-full bg-accent px-3 text-xs font-bold text-white dark:text-[#15142a]"
+              className="grid h-7 place-items-center rounded-full bg-accent px-2.5 text-[11px] font-bold text-white dark:text-[#15142a]"
             >
-              2. Open feedback form
+              Feedback
             </a>
-            <button onClick={() => db.settings.update("me", { feedbackWeekDone: week })} className="h-9 rounded-full px-3 text-xs font-bold">
-              Not now
+            <button onClick={() => db.settings.update("me", { feedbackWeekDone: week })} className="h-7 rounded-full px-2 text-[11px] font-bold">
+              Skip
             </button>
-          </span>
+          </div>
         </div>
       )}
 
       {hour >= 20 && !streaks.todayActive && (
-        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 text-sm">
-          <span className="text-xl">🌙</span>
-          <span className="min-w-0 flex-1">Nothing logged today yet – keep your {streaks.log}-day streak alive!</span>
-          <span className="flex gap-2">
-            <button onClick={() => openAdd()} className="h-9 rounded-full bg-accent px-3 text-xs font-bold text-white dark:text-[#15142a]">
-              Add expense
+        <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-card px-3.5 py-2.5 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-base shrink-0">🌙</span>
+            <span className="truncate">Keep your <b>{streaks.log}-day</b> streak alive</span>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
+            <button onClick={() => openAdd()} className="h-7 rounded-full bg-accent px-2.5 text-[11px] font-bold text-white dark:text-[#15142a]">
+              + Spend
             </button>
-            <button onClick={toggleNoSpend} className="h-9 rounded-full bg-bg-soft px-3 text-xs font-bold">
-              {isTodayNoSpend ? "₹0 logged" : "I spent ₹0"}
+            <button onClick={toggleNoSpend} className="h-7 rounded-full bg-bg-soft px-2.5 text-[11px] font-bold">
+              {isTodayNoSpend ? "₹0 logged" : "₹0 today"}
             </button>
-          </span>
+          </div>
         </div>
       )}
 
@@ -353,6 +342,32 @@ export default function Dashboard() {
           <StatTile label="Badges" value={`🏅 ${badgeCount}`} hint="collected" tone="#C8B6FF" />
         </Link>
       </div>
+
+      {/* Challenges & Insights */}
+      <Card delay={0.08} className="p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-ink">
+              <span>🎯</span> Challenges &amp; Insights
+            </h2>
+            <p className="text-[11px] sm:text-xs text-muted truncate">Savings habits &amp; waste audit</p>
+          </div>
+          <div className="flex gap-1.5 sm:gap-2 shrink-0">
+            <button
+              onClick={() => setShowWasteAudit(true)}
+              className="inline-flex h-8 items-center gap-1 rounded-xl border border-line bg-bg-soft px-2.5 text-xs font-semibold text-ink transition hover:border-accent/40 active:scale-95"
+            >
+              🔥 Waste Audit
+            </button>
+            <button
+              onClick={() => setShowChallenges(true)}
+              className="inline-flex h-8 items-center gap-1 rounded-xl bg-accent px-2.5 text-xs font-semibold text-white dark:text-[#15142a] shadow-soft transition hover:opacity-90 active:scale-95"
+            >
+              🏆 Challenges
+            </button>
+          </div>
+        </div>
+      </Card>
 
       {/* Quick add */}
       <Card delay={0.1}>
@@ -491,6 +506,8 @@ export default function Dashboard() {
 
       <SafeToSpendSheet open={showBreakdown} onClose={() => setShowBreakdown(false)} b={budget} />
       <AddMoneySheet key={addMoneyKey} open={showAddMoney} onClose={() => setShowAddMoney(false)} />
+      {showWasteAudit && <WasteAuditModal onClose={() => setShowWasteAudit(false)} />}
+      {showChallenges && <ChallengesModal onClose={() => setShowChallenges(false)} />}
     </div>
   );
 }

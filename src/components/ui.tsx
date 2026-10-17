@@ -173,15 +173,15 @@ export function Segmented<T extends string>({
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "relative flex-1 rounded-xl font-semibold transition",
-            size === "sm" ? "h-8 px-2.5 text-xs" : "h-9 px-3 text-sm",
+            "relative flex-1 whitespace-nowrap rounded-xl font-semibold transition",
+            size === "sm" ? "h-8 px-2 text-xs" : "h-9 px-2 text-xs sm:text-sm",
             value === o.value ? "text-ink" : "text-muted hover:text-ink",
           )}
         >
           {value === o.value && (
             <motion.span layoutId={`seg-${options.map((x) => x.value).join("")}`} className="absolute inset-0 rounded-xl bg-card shadow-soft" />
           )}
-          <span className="relative">{o.label}</span>
+          <span className="relative whitespace-nowrap">{o.label}</span>
         </button>
       ))}
     </div>

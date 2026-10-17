@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
 import { CloudSyncStatus } from "@/components/CloudSyncStatus";
-import { WasteAuditModal, ChallengesModal } from "@/components/WasteAndChallenges";
 import { getAIStatus, type AIStatus } from "@/lib/ai-client";
 import { BADGES } from "@/lib/badges";
 import { backupNow, clearAll, downloadText, importBackup, isBackupFile, exportExpensesCSV, exportMonthPDF } from "@/lib/backup";
@@ -32,8 +31,6 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 export default function SettingsPage() {
   const settings = useSettings();
-  const [showWasteAudit, setShowWasteAudit] = useState(false);
-  const [showChallenges, setShowChallenges] = useState(false);
   if (!settings) return null;
   return (
     <div className="space-y-4">
@@ -51,18 +48,6 @@ export default function SettingsPage() {
         <StreakFreezeCard settings={settings} />
         <CurrencyCard settings={settings} />
       </div>
-      {/* Challenges & Waste Audit quick-access */}
-      <Card>
-        <SectionTitle>🎯 Challenges &amp; Insights</SectionTitle>
-        <div className="flex flex-wrap gap-3">
-          <Button variant="soft" onClick={() => setShowWasteAudit(true)} className="gap-2">
-            🔥 Waste Audit
-          </Button>
-          <Button variant="soft" onClick={() => setShowChallenges(true)} className="gap-2">
-            <Zap size={15} /> Mini Challenges
-          </Button>
-        </div>
-      </Card>
       <ExportCard settings={settings} />
       <BadgesCard />
       <div className="grid gap-4 lg:grid-cols-2">
@@ -72,8 +57,6 @@ export default function SettingsPage() {
         <AICard settings={settings} />
       </div>
       <DataCard settings={settings} />
-      {showWasteAudit && <WasteAuditModal onClose={() => setShowWasteAudit(false)} />}
-      {showChallenges && <ChallengesModal onClose={() => setShowChallenges(false)} />}
     </div>
   );
 }
@@ -542,6 +525,7 @@ function BudgetScheduleCard({ settings }: { settings: Settings }) {
       <SectionTitle>📅 Pocket money schedule</SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">How often does your pocket money arrive?</p>
       <Segmented
+        className="w-full flex"
         value={schedule}
         onChange={(v) => save(v as "monthly" | "biweekly" | "weekly")}
         options={[
