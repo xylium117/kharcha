@@ -4,7 +4,7 @@ import { format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Send } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AddMoneySheet } from "@/components/AddMoneySheet";
 import { useAddExpense } from "@/components/AddExpenseSheet";
@@ -74,11 +74,27 @@ export default function Dashboard() {
     };
   }, [settings, expenses, now]);
 
+  // Category budget cap alerts
+  const catBudgetAlerts = useMemo(() => {
+    if (!settings?.categoryBudgets || !expenses || !budget?.period) return [];
+    const caps = settings.categoryBudgets;
+    if (Object.keys(caps).length === 0) return [];
+    const catSpend = new Map<string, number>();
+    for (const e of expenses) {
+      if (!inRange(e.ts, budget.period.start, budget.period.nextStart)) continue;
+      catSpend.set(e.categoryId, (catSpend.get(e.categoryId) ?? 0) + e.amount);
+    }
+    return Object.entries(caps)
+      .filter(([catId, cap]) => (catSpend.get(catId) ?? 0) >= cap * 0.9)
+      .map(([catId, cap]) => ({ catId, cap, spent: catSpend.get(catId) ?? 0 }));
+  }, [settings, expenses, budget?.period]);
+
   // Handle PWA shortcut actions from URL params
-  const searchParams = useSearchParams();
   useEffect(() => {
-    const action = searchParams.get("action");
-    if (!action || !settings) return;
+    if (typeof window === "undefined" || !settings) return;
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get("action");
+    if (!action) return;
     if (action === "zero-spend") {
       const todayKey = dayKey(now);
       if (!settings.noSpendDays.includes(todayKey)) {
@@ -98,8 +114,7 @@ export default function Dashboard() {
     // Clear action from URL without reload
     router.replace("/", { scroll: false });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
+  }, [settings]);
 
   if (!settings || !expenses || !budget) return null;
 
@@ -132,21 +147,6 @@ export default function Dashboard() {
   }
 
   const activeGoals = goals.filter((g) => !g.completedAt).slice(0, 2);
-
-  // Category budget cap alerts
-  const catBudgetAlerts = useMemo(() => {
-    if (!settings?.categoryBudgets || !expenses) return [];
-    const caps = settings.categoryBudgets;
-    if (Object.keys(caps).length === 0) return [];
-    const catSpend = new Map<string, number>();
-    for (const e of expenses) {
-      if (!budget?.period || !inRange(e.ts, budget.period.start, budget.period.nextStart)) continue;
-      catSpend.set(e.categoryId, (catSpend.get(e.categoryId) ?? 0) + e.amount);
-    }
-    return Object.entries(caps)
-      .filter(([catId, cap]) => (catSpend.get(catId) ?? 0) >= cap * 0.9)
-      .map(([catId, cap]) => ({ catId, cap, spent: catSpend.get(catId) ?? 0 }));
-  }, [settings, expenses, budget?.period]);
 
   return (
     <div className="space-y-4">
