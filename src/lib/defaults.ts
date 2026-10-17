@@ -49,6 +49,11 @@ export function defaultSettings(name: string, monthlyBudget: number): Settings {
     reminderTime: "21:00",
     notificationsEnabled: false,
     createdAt: Date.now(),
+    currency: "INR",
+    categoryBudgets: {},
+    budgetSchedule: "monthly",
+    streakFreezesUsed: [],
+    completedChallenges: [],
   };
 }
 

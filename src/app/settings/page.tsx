@@ -2,21 +2,22 @@
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowUp, Bell, BellRing, Download, Plus, Smartphone, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, BellRing, Download, FileDown, FileText, Plus, Smartphone, Trash2, Upload, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
 import { CloudSyncStatus } from "@/components/CloudSyncStatus";
+import { WasteAuditModal, ChallengesModal } from "@/components/WasteAndChallenges";
 import { getAIStatus, type AIStatus } from "@/lib/ai-client";
 import { BADGES } from "@/lib/badges";
-import { backupNow, clearAll, downloadText, importBackup, isBackupFile } from "@/lib/backup";
-import { budgetFor, getPeriod } from "@/lib/budget";
+import { backupNow, clearAll, downloadText, importBackup, isBackupFile, exportExpensesCSV, exportMonthPDF } from "@/lib/backup";
+import { budgetFor, getPeriod, inRange } from "@/lib/budget";
 import { db, uid } from "@/lib/db";
 import { PASTELS, PAYMENT_MODES, TAGS } from "@/lib/defaults";
 import { copyUsage, FEEDBACK_URL, usageSummary } from "@/lib/feedback";
 import { googleCalendarUrl, reminderIcs } from "@/lib/reminder";
-import { dayKey, parseDayKey, rupee } from "@/lib/format";
-import { useCategories, useNow, useRecurring, useSettings } from "@/lib/hooks";
+import { dayKey, parseDayKey, rupee, CURRENCY_MAP, SUPPORTED_CURRENCIES } from "@/lib/format";
+import { useCategories, useExpenses, useNow, useRecurring, useSettings } from "@/lib/hooks";
 import {
   getNotificationPermission,
   isNotificationSupported,
@@ -31,6 +32,8 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 export default function SettingsPage() {
   const settings = useSettings();
+  const [showWasteAudit, setShowWasteAudit] = useState(false);
+  const [showChallenges, setShowChallenges] = useState(false);
   if (!settings) return null;
   return (
     <div className="space-y-4">
@@ -41,7 +44,26 @@ export default function SettingsPage() {
         <QuickButtonsCard />
         <RecurringCard />
       </div>
-      <CategoriesCard />
+      <CategoriesCard settings={settings} />
+      <CategoryBudgetsCard settings={settings} />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <BudgetScheduleCard settings={settings} />
+        <StreakFreezeCard settings={settings} />
+        <CurrencyCard settings={settings} />
+      </div>
+      {/* Challenges & Waste Audit quick-access */}
+      <Card>
+        <SectionTitle>🎯 Challenges &amp; Insights</SectionTitle>
+        <div className="flex flex-wrap gap-3">
+          <Button variant="soft" onClick={() => setShowWasteAudit(true)} className="gap-2">
+            🔥 Waste Audit
+          </Button>
+          <Button variant="soft" onClick={() => setShowChallenges(true)} className="gap-2">
+            <Zap size={15} /> Mini Challenges
+          </Button>
+        </div>
+      </Card>
+      <ExportCard settings={settings} />
       <BadgesCard />
       <div className="grid gap-4 lg:grid-cols-2">
         <FeedbackCard />
@@ -50,6 +72,8 @@ export default function SettingsPage() {
         <AICard settings={settings} />
       </div>
       <DataCard settings={settings} />
+      {showWasteAudit && <WasteAuditModal onClose={() => setShowWasteAudit(false)} />}
+      {showChallenges && <ChallengesModal onClose={() => setShowChallenges(false)} />}
     </div>
   );
 }
@@ -405,7 +429,7 @@ function RecurringCard() {
   );
 }
 
-function CategoriesCard() {
+function CategoriesCard({ settings }: { settings: Settings }) {
   const categories = useCategories();
   const { toast } = useUI();
 
@@ -460,6 +484,207 @@ function CategoriesCard() {
           </li>
         ))}
       </ul>
+    </Card>
+  );
+}
+
+function CategoryBudgetsCard({ settings }: { settings: Settings }) {
+  const categories = useCategories();
+  const { toast } = useUI();
+  const budgets = settings.categoryBudgets ?? {};
+
+  async function updateBudget(catId: string, value: string) {
+    const n = Number(value);
+    const next = { ...budgets };
+    if (n > 0) next[catId] = n;
+    else delete next[catId];
+    await db.settings.update("me", { categoryBudgets: next });
+  }
+
+  return (
+    <Card>
+      <SectionTitle>🎯 Category budget caps</SectionTitle>
+      <p className="-mt-2 mb-3 text-sm text-muted">
+        Set a monthly spend limit per category. Leave blank for no cap.
+      </p>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {categories.map((c) => (
+          <li key={c.id} className="flex items-center gap-2">
+            <span className="w-7 text-center text-lg">{c.emoji}</span>
+            <span className="flex-1 truncate text-sm">{c.name}</span>
+            <Input
+              aria-label={`Budget cap for ${c.name}`}
+              type="number"
+              min={0}
+              placeholder="No cap"
+              value={budgets[c.id] ?? ""}
+              onChange={(e) => updateBudget(c.id, e.target.value)}
+              className="w-24 num px-2 text-sm"
+            />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function BudgetScheduleCard({ settings }: { settings: Settings }) {
+  const { toast } = useUI();
+  const schedule = settings.budgetSchedule ?? "monthly";
+
+  async function save(s: "monthly" | "biweekly" | "weekly") {
+    await db.settings.update("me", { budgetSchedule: s });
+    toast({ emoji: "📅", message: `Budget schedule set to ${s}` });
+  }
+
+  return (
+    <Card>
+      <SectionTitle>📅 Pocket money schedule</SectionTitle>
+      <p className="-mt-2 mb-3 text-sm text-muted">How often does your pocket money arrive?</p>
+      <Segmented
+        value={schedule}
+        onChange={(v) => save(v as "monthly" | "biweekly" | "weekly")}
+        options={[
+          { value: "weekly", label: "Weekly" },
+          { value: "biweekly", label: "Bi-weekly" },
+          { value: "monthly", label: "Monthly" },
+        ]}
+      />
+      <p className="mt-2 text-xs text-muted">
+        {schedule === "weekly" && "Budget resets every 7 days from your start day."}
+        {schedule === "biweekly" && "Budget resets every 14 days from your start day."}
+        {schedule === "monthly" && "Budget covers the full month period (default)."}
+      </p>
+    </Card>
+  );
+}
+
+function StreakFreezeCard({ settings }: { settings: Settings }) {
+  const { toast } = useUI();
+  const now = useNow();
+  const thisMonth = format(now, "yyyy-MM");
+  const freezesUsed = settings.streakFreezesUsed ?? [];
+  const usedThisMonth = freezesUsed.includes(thisMonth);
+
+  async function useFreeze() {
+    if (usedThisMonth) return;
+    const next = [...freezesUsed, thisMonth];
+    await db.settings.update("me", { streakFreezesUsed: next });
+    toast({ emoji: "🧊", tone: "good", message: "Streak freeze activated for this month!" });
+  }
+
+  async function removeFreeze() {
+    const next = freezesUsed.filter((m) => m !== thisMonth);
+    await db.settings.update("me", { streakFreezesUsed: next });
+    toast({ emoji: "🔥", message: "Streak freeze removed for this month." });
+  }
+
+  return (
+    <Card>
+      <SectionTitle>🧊 Streak freeze</SectionTitle>
+      <p className="-mt-2 mb-3 text-sm text-muted">
+        Use 1 streak freeze per month to protect your streak from a missed day. Like a shield!
+      </p>
+      {usedThisMonth ? (
+        <div className="rounded-2xl bg-[var(--accent-soft)] border border-[var(--accent)]/30 p-3">
+          <p className="text-sm font-semibold text-[var(--accent)]">🧊 Freeze active this month ({thisMonth})</p>
+          <p className="text-xs text-muted mt-0.5">One missed day won't break your streak this month.</p>
+          <button onClick={removeFreeze} className="mt-2 text-xs text-muted underline hover:text-bad">Remove freeze</button>
+        </div>
+      ) : (
+        <Button onClick={useFreeze} variant="soft">
+          🧊 Activate streak freeze for {format(now, "MMMM")}
+        </Button>
+      )}
+      {freezesUsed.length > 0 && (
+        <p className="mt-2 text-xs text-muted">Previously used: {freezesUsed.slice(-3).join(", ")}</p>
+      )}
+    </Card>
+  );
+}
+
+function CurrencyCard({ settings }: { settings: Settings }) {
+  const { toast } = useUI();
+  const currency = settings.currency ?? "INR";
+
+  async function save(c: string) {
+    await db.settings.update("me", { currency: c });
+    toast({ emoji: CURRENCY_MAP[c]?.symbol ?? "💱", message: `Currency set to ${c}` });
+  }
+
+  return (
+    <Card>
+      <SectionTitle>💱 Currency</SectionTitle>
+      <p className="-mt-2 mb-3 text-sm text-muted">Switch base currency for display (data stays in raw numbers).</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {SUPPORTED_CURRENCIES.map((c) => {
+          const info = CURRENCY_MAP[c];
+          return (
+            <button
+              key={c}
+              onClick={() => save(c)}
+              aria-pressed={currency === c}
+              className={cn(
+                "rounded-2xl border p-3 text-center transition",
+                currency === c ? "border-accent bg-accent-soft" : "border-line hover:border-accent/40",
+              )}
+            >
+              <div className="text-xl font-bold">{info.symbol}</div>
+              <div className="text-xs font-semibold mt-0.5">{c}</div>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function ExportCard({ settings }: { settings: Settings }) {
+  const { toast } = useUI();
+  const categories = useCategories();
+  const expenses = useExpenses();
+  const now = useNow();
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  async function doCSV() {
+    setExporting("csv");
+    try {
+      await exportExpensesCSV();
+      toast({ emoji: "📊", tone: "good", message: "Expenses exported as CSV" });
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function doPDF() {
+    if (!expenses) return;
+    setExporting("pdf");
+    try {
+      const period = getPeriod(now, settings.monthStartDay);
+      const monthLabel = format(period.start, "MMMM yyyy");
+      const monthExpenses = expenses.filter((e) => inRange(e.ts, period.start, period.nextStart));
+      const catMap = new Map(categories.map((c) => [c.id, c]));
+      await exportMonthPDF(monthLabel, monthExpenses, catMap, settings.currency ?? "INR", budgetFor(settings, period.key));
+      toast({ emoji: "📄", tone: "good", message: "Monthly PDF statement opened – print or Save as PDF" });
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  return (
+    <Card>
+      <SectionTitle>📤 Export data</SectionTitle>
+      <p className="-mt-2 mb-3 text-sm text-muted">
+        Export your expenses as a spreadsheet (CSV) or a printable monthly statement (PDF).
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={doCSV} disabled={exporting === "csv"} className="gap-2">
+          <FileDown size={15} /> {exporting === "csv" ? "Exporting…" : "Export CSV"}
+        </Button>
+        <Button variant="soft" onClick={doPDF} disabled={exporting === "pdf"} className="gap-2">
+          <FileText size={15} /> {exporting === "pdf" ? "Generating…" : "Monthly PDF"}
+        </Button>
+      </div>
     </Card>
   );
 }

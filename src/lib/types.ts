@@ -32,6 +32,16 @@ export interface Settings {
   lastNotifiedDate?: string;
   /** Last weekly feedback check-in week handled (answered or skipped). */
   feedbackWeekDone?: number;
+  /** Base currency code (e.g. "INR", "USD", "EUR", "GBP"). Defaults to "INR". */
+  currency?: string;
+  /** Category-level monthly spend caps, keyed by categoryId. */
+  categoryBudgets?: Record<string, number>;
+  /** Pocket money arrival schedule frequency. */
+  budgetSchedule?: "monthly" | "biweekly" | "weekly";
+  /** Year-month strings (yyyy-MM) where a monthly streak freeze was consumed. */
+  streakFreezesUsed?: string[];
+  /** IDs of completed mini-savings challenges. */
+  completedChallenges?: string[];
 }
 
 export type IncomeSource = "gift" | "refund" | "repayment" | "other";

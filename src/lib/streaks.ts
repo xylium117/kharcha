@@ -22,13 +22,31 @@ export function buildDayMap(expenses: Expense[], noSpendDays: string[]): Map<str
   return m;
 }
 
-/** Consecutive days with something logged (an expense or a "no-spend day"). Today counts if logged; a not-yet-logged today doesn't break it. */
-export function loggingStreak(days: Map<string, DayInfo>, now: Date): number {
+/** Consecutive days with something logged (an expense or a "no-spend day").
+ *  Today counts if logged; a not-yet-logged today doesn't break it.
+ *  If a day is missing and the month has a streak freeze, it is treated as frozen (counts +1 but stops counting on a second consecutive miss).
+ */
+export function loggingStreak(days: Map<string, DayInfo>, now: Date, streakFreezesUsed: string[] = []): number {
+  const freezeSet = new Set(streakFreezesUsed);
   let d = startOfDay(now);
   if (!days.get(dayKey(d))?.active) d = addDays(d, -1);
   let n = 0;
-  while (days.get(dayKey(d))?.active) {
-    n++;
+  let usedFreeze = false;
+  while (true) {
+    const k = dayKey(d);
+    if (days.get(k)?.active) {
+      n++;
+      usedFreeze = false;
+    } else {
+      // Check if this month has an available freeze
+      const monthKey = k.slice(0, 7);
+      if (!usedFreeze && freezeSet.has(monthKey)) {
+        n++;
+        usedFreeze = true;
+      } else {
+        break;
+      }
+    }
     d = addDays(d, -1);
   }
   return n;

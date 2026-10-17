@@ -4,7 +4,7 @@ import { format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Send } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AddMoneySheet } from "@/components/AddMoneySheet";
 import { useAddExpense } from "@/components/AddExpenseSheet";
@@ -16,7 +16,7 @@ import { SafeToSpendSheet } from "@/components/SafeToSpendSheet";
 import { Card, EmptyState, Money, Progress, SectionTitle, StatTile, cn } from "@/components/ui";
 import { WeeklyReportCard } from "@/components/WeeklyReportCard";
 import { backupDue, backupNow } from "@/lib/backup";
-import { goalSaved } from "@/lib/budget";
+import { goalSaved, inRange } from "@/lib/budget";
 import { celebrate } from "@/lib/confetti";
 import { copyUsage, FEEDBACK_URL, weekNumber } from "@/lib/feedback";
 import { db } from "@/lib/db";
@@ -68,11 +68,38 @@ export default function Dashboard() {
     if (!settings || !expenses) return { log: 0, under: 0, todayActive: false };
     const days = buildDayMap(expenses, settings.noSpendDays);
     return {
-      log: loggingStreak(days, now),
+      log: loggingStreak(days, now, settings.streakFreezesUsed ?? []),
       under: underLimitStreak(days, settings, now),
       todayActive: !!days.get(dayKey(now))?.active,
     };
   }, [settings, expenses, now]);
+
+  // Handle PWA shortcut actions from URL params
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const action = searchParams.get("action");
+    if (!action || !settings) return;
+    if (action === "zero-spend") {
+      const todayKey = dayKey(now);
+      if (!settings.noSpendDays.includes(todayKey)) {
+        db.settings.update("me", { noSpendDays: [...settings.noSpendDays, todayKey] }).then(() => {
+          toast({ emoji: "0️⃣", tone: "good", message: "No-spend day logged!" });
+        });
+      }
+    } else if (action === "quick-add") {
+      openAdd();
+    } else if (action === "quick-chai") {
+      // Find the tea/chai quick button or log directly
+      db.quickButtons.where("label").equalsIgnoreCase("tea").first().then((btn) => {
+        if (btn) quickAdd(btn);
+        else openAdd();
+      });
+    }
+    // Clear action from URL without reload
+    router.replace("/", { scroll: false });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
 
   if (!settings || !expenses || !budget) return null;
 
@@ -106,6 +133,21 @@ export default function Dashboard() {
 
   const activeGoals = goals.filter((g) => !g.completedAt).slice(0, 2);
 
+  // Category budget cap alerts
+  const catBudgetAlerts = useMemo(() => {
+    if (!settings?.categoryBudgets || !expenses) return [];
+    const caps = settings.categoryBudgets;
+    if (Object.keys(caps).length === 0) return [];
+    const catSpend = new Map<string, number>();
+    for (const e of expenses) {
+      if (!budget?.period || !inRange(e.ts, budget.period.start, budget.period.nextStart)) continue;
+      catSpend.set(e.categoryId, (catSpend.get(e.categoryId) ?? 0) + e.amount);
+    }
+    return Object.entries(caps)
+      .filter(([catId, cap]) => (catSpend.get(catId) ?? 0) >= cap * 0.9)
+      .map(([catId, cap]) => ({ catId, cap, spent: catSpend.get(catId) ?? 0 }));
+  }, [settings, expenses, budget?.period]);
+
   return (
     <div className="space-y-4">
       {/* Greeting */}
@@ -126,6 +168,21 @@ export default function Dashboard() {
           <span>{banner.text}</span>
         </div>
       )}
+
+      {catBudgetAlerts.map(({ catId, cap, spent }) => {
+        const cat = cats.get(catId);
+        const isOver = spent >= cap;
+        return (
+          <div key={catId} className={`flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm ${isOver ? "border-bad/30 bg-bad/5 text-bad" : "border-warn/30 bg-[#fff4dc] text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]"}`}>
+            <span className="text-xl">{cat?.emoji ?? "🏷️"}</span>
+            <span className="flex-1">
+              <b>{cat?.name ?? catId}</b> {isOver ? "over" : "near"} its monthly cap –{" "}
+              {rupee(spent)} / {rupee(cap)} ({Math.round((spent / cap) * 100)}%)
+            </span>
+          </div>
+        );
+      })}
+
 
       {backupDue(settings, now.getTime()) && (
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-warn/30 bg-[#fff4dc] px-4 py-3 text-sm text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]">
