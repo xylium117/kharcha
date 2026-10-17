@@ -12,20 +12,14 @@ import { buildDayMap, underLimitStreak } from "@/lib/streaks";
 import { Button, Card, SectionTitle } from "@/components/ui";
 import { celebrate } from "@/lib/confetti";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface Challenge {
   id: string;
   name: string;
   icon: string;
   description: string;
-  /** How many days the challenge runs */
   days: number;
-  /** Tag that must NOT appear during the challenge (null = just no-spend days) */
   forbiddenCategory?: string;
-  /** For "under budget" challenges – max amount per day */
   dailyCap?: number;
-  /** Number of no-spend days required */
   noSpendDays?: number;
   badgeId?: string;
 }
@@ -73,8 +67,6 @@ export const CHALLENGES: Challenge[] = [
   },
 ];
 
-// ─── Waste Audit Modal ────────────────────────────────────────────────────────
-
 interface WasteAuditProps {
   onClose: () => void;
 }
@@ -101,14 +93,12 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
 
   const totalWaste = useMemo(() => wasteExpenses.reduce((s, e) => s + e.amount, 0), [wasteExpenses]);
 
-  // Category breakdown of waste
   const wasteByCat = useMemo(() => {
     const m = new Map<string, number>();
     for (const e of wasteExpenses) m.set(e.categoryId, (m.get(e.categoryId) ?? 0) + e.amount);
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }, [wasteExpenses]);
 
-  // Savings potential: what could have been saved
   const savingsGoalPotential = totalWaste;
   const chaiBuys = Math.floor(totalWaste / 15);
   const busTrips = Math.floor(totalWaste / 20);
@@ -121,7 +111,6 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
         className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-[var(--bg)] p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-bold">🔥 Waste Audit</h2>
@@ -140,7 +129,6 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
           </div>
         ) : (
           <>
-            {/* Big waste number */}
             <div className="rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-5 mb-4">
               <p className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-1">Total Wasted</p>
               <p className="text-4xl font-black text-red-600 dark:text-red-400 num">{rupee(totalWaste)}</p>
@@ -149,7 +137,6 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
               </p>
             </div>
 
-            {/* Savings translation */}
             <div className="rounded-2xl bg-[var(--bg-soft)] p-4 mb-4">
               <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
                 💡 If you'd saved this instead…
@@ -166,7 +153,6 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
               </div>
             </div>
 
-            {/* Category breakdown */}
             {wasteByCat.length > 0 && (
               <div className="mb-4">
                 <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Where did it go?</p>
@@ -197,7 +183,6 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
               </div>
             )}
 
-            {/* Recent waste items */}
             {wasteExpenses.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">Recent waste</p>
@@ -229,8 +214,6 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
   );
 }
 
-// ─── Mini Savings Challenges ──────────────────────────────────────────────────
-
 interface ChallengesProps {
   onClose: () => void;
 }
@@ -243,9 +226,7 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
 
   const completed = new Set(settings?.completedChallenges ?? []);
 
-  // ─── Automated Challenge Detection ─────────────────────────────────────────
   const autoStatus = useMemo(() => {
-    // 1. no-zomato-7
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -257,7 +238,6 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
     const zomatoCleanDays = Math.max(0, 7 - daysWithFoodOrder.size);
     const zomatoPassed = zomatoCleanDays >= 7;
 
-    // 2. weekend-under-300
     const d = now.getDay();
     const daysSinceSat = (d + 1) % 7;
     const sat = new Date(now);
@@ -270,7 +250,6 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
     const weekendSpend = weekendExpenses.reduce((s, e) => s + e.amount, 0);
     const weekendPassed = weekendSpend <= 300;
 
-    // 3. 5-no-spend-days
     const period = getPeriod(now, settings?.monthStartDay ?? 1);
     const monthNoSpend = (settings?.noSpendDays ?? []).filter((dk) => {
       const [y, m, day] = dk.split("-").map(Number);
@@ -279,7 +258,6 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
     }).length;
     const fiveNoSpendPassed = monthNoSpend >= 5;
 
-    // 4. no-wants-3
     const threeDaysAgo = new Date(now);
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
     threeDaysAgo.setHours(0, 0, 0, 0);
@@ -288,7 +266,6 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
     const wantsCleanDays = Math.max(0, 3 - daysWithWants.size);
     const wantsPassed = wantsCleanDays >= 3;
 
-    // 5. under-daily-5
     const dayMap = buildDayMap(expenses, settings?.noSpendDays ?? []);
     const underStreak = settings ? underLimitStreak(dayMap, settings, now) : 0;
     const underDailyPassed = underStreak >= 5;
@@ -393,7 +370,6 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
                     </div>
                     <p className="text-xs text-[var(--muted)] mt-0.5">{ch.description}</p>
 
-                    {/* Progress Bar & Status */}
                     {auto && (
                       <div className="mt-2.5">
                         <div className="flex justify-between items-center text-xs mb-1">

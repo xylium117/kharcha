@@ -78,7 +78,6 @@ export default function Dashboard() {
     };
   }, [settings, expenses, now]);
 
-  // Category budget cap alerts
   const catBudgetAlerts = useMemo(() => {
     if (!settings?.categoryBudgets || !expenses || !budget?.period) return [];
     const caps = settings.categoryBudgets;
@@ -93,7 +92,6 @@ export default function Dashboard() {
       .map(([catId, cap]) => ({ catId, cap, spent: catSpend.get(catId) ?? 0 }));
   }, [settings, expenses, budget?.period]);
 
-  // Handle PWA shortcut actions from URL params
   useEffect(() => {
     if (typeof window === "undefined" || !settings) return;
     const params = new URLSearchParams(window.location.search);
@@ -108,16 +106,8 @@ export default function Dashboard() {
       }
     } else if (action === "quick-add") {
       openAdd();
-    } else if (action === "quick-chai") {
-      // Find the tea/chai quick button or log directly
-      db.quickButtons.where("label").equalsIgnoreCase("tea").first().then((btn) => {
-        if (btn) quickAdd(btn);
-        else openAdd();
-      });
     }
-    // Clear action from URL without reload
     router.replace("/", { scroll: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
   if (!settings || !expenses || !budget) return null;
@@ -126,7 +116,6 @@ export default function Dashboard() {
   const hour = now.getHours();
   const greeting = hour < 5 ? "Up late" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const line = MOOD_LINE[mood][now.getDate() % MOOD_LINE[mood].length];
-  // Pocket money plus any money in; lent-out cash counts as used until friends pay it back.
   const total = budget.budget + budget.incomeThisPeriod;
   const used = total > 0 ? (budget.spent + budget.savedThisPeriod + budget.lentThisPeriod) / total : 0;
   const ringColor = used > 1 ? "var(--bad)" : used > budget.period.dayIndex / budget.period.daysInPeriod + 0.1 ? "#ffb86b" : "var(--accent)";
@@ -154,7 +143,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      {/* Greeting */}
       <div className="flex items-center gap-3">
         <Mascot mood={mood} size={64} className="animate-bob" />
         <div className="min-w-0">
@@ -253,7 +241,6 @@ export default function Dashboard() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr]">
-        {/* Safe to spend */}
         <Card
           className={cn("relative overflow-hidden border-0 text-[#2d2a3e]", over && "animate-shake")}
           as="div"
@@ -304,7 +291,6 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        {/* Month ring */}
         <Card delay={0.05} className="flex items-center gap-4">
           <Ring value={used} color={ringColor}>
             <div>
@@ -343,7 +329,6 @@ export default function Dashboard() {
         </Link>
       </div>
 
-      {/* Challenges & Insights */}
       <Card delay={0.08} className="p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
@@ -369,13 +354,11 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Quick add */}
       <Card delay={0.1}>
         <SectionTitle action={<button onClick={() => openAdd({ tab: "form" })} className="text-sm font-semibold text-accent">Full form</button>}>
           ⚡ Quick add
         </SectionTitle>
         <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {/* ₹0 Spend Quick Button */}
           <button
             onClick={toggleNoSpend}
             className={cn(
@@ -415,7 +398,6 @@ export default function Dashboard() {
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Recent */}
         <Card delay={0.15}>
           <SectionTitle
             action={
@@ -440,7 +422,6 @@ export default function Dashboard() {
         </Card>
 
         <div className="space-y-4">
-          {/* Ask Stash */}
           <Card delay={0.2} className="bg-gradient-to-br from-card to-accent-soft">
             <div className="flex items-start gap-3">
               <Mascot mood="happy" size={52} />
