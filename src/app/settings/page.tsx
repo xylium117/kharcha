@@ -2,7 +2,7 @@
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowUp, Bell, BellRing, Download, FileDown, FileText, Plus, Smartphone, Trash2, Upload, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Bell, BellRing, Calendar, Cloud, Coins, Download, FileDown, FileText, Gauge, GraduationCap, Heart, Medal, MessageCircle, Palette, Plus, Repeat, Smartphone, Snowflake, Tag as TagIcon, Trash2, Upload, User, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
@@ -42,7 +42,6 @@ export default function SettingsPage() {
         <RecurringCard />
       </div>
       <CategoriesCard settings={settings} />
-      <CategoryBudgetsCard settings={settings} />
       <div className="grid gap-4 lg:grid-cols-2">
         <BudgetScheduleCard settings={settings} />
         <StreakFreezeCard settings={settings} />
@@ -117,7 +116,7 @@ function ProfileCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>👤 You & your budget</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><User size={16} className="text-[#C8B6FF]" /> You & your budget</span></SectionTitle>
       <form
         className="grid gap-3 sm:grid-cols-4"
         onSubmit={(e) => {
@@ -206,7 +205,7 @@ function SeasonCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>🎓 Semester mode</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><GraduationCap size={16} className="text-[#A0C4FF]" /> Semester mode</span></SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">
         This month&apos;s budget: <b className="num text-ink">{rupee(current)}</b>
         {hasOverride && " (custom for this month)"}
@@ -279,7 +278,7 @@ function QuickButtonsCard() {
           </Button>
         }
       >
-        ⚡ Quick buttons
+        <span className="flex items-center gap-1.5"><Zap size={14} className="text-[#FFD6A5]" /> Quick buttons</span>
       </SectionTitle>
       <ul className="space-y-2">
         {buttons.map((b, i) => (
@@ -360,7 +359,7 @@ function RecurringCard() {
 
   return (
     <Card>
-      <SectionTitle>🔁 Recurring expenses</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Repeat size={16} className="text-[#9BF6FF]" /> Recurring expenses</span></SectionTitle>
       <ul className="mb-4 space-y-2">
         {recurring.length === 0 && <li className="text-sm text-muted">Phone recharge, subscriptions, mess fees… add them once and forget.</li>}
         {recurring.map((r) => (
@@ -441,7 +440,7 @@ function CategoriesCard({ settings }: { settings: Settings }) {
           </Button>
         }
       >
-        🏷️ Categories
+        <span className="flex items-center gap-1.5"><TagIcon size={14} className="text-[#E4C1F9]" /> Categories</span>
       </SectionTitle>
       <ul className="grid gap-2 sm:grid-cols-2">
         {categories.map((c) => (
@@ -486,7 +485,7 @@ function CategoryBudgetsCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>🎯 Category budget caps</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Gauge size={16} className="text-[#FFD6A5]" /> Category budget caps</span></SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">
         Set a monthly spend limit per category. Leave blank for no cap.
       </p>
@@ -522,7 +521,7 @@ function BudgetScheduleCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>📅 Pocket money schedule</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Calendar size={16} className="text-[#A0C4FF]" /> Pocket money schedule</span></SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">How often does your pocket money arrive?</p>
       <Segmented
         className="w-full flex"
@@ -565,7 +564,7 @@ function StreakFreezeCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>🧊 Streak freeze</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Snowflake size={16} className="text-[#9BF6FF]" /> Streak freeze</span></SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">
         Use 1 streak freeze per month to protect your streak from a missed day. Like a shield!
       </p>
@@ -598,7 +597,7 @@ function CurrencyCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>💱 Currency</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Coins size={16} className="text-[#FFD6A5]" /> Currency</span></SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">Switch base currency for display (data stays in raw numbers).</p>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {SUPPORTED_CURRENCIES.map((c) => {
@@ -657,7 +656,7 @@ function ExportCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>📤 Export data</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><FileDown size={16} className="text-[#B8F2E6]" /> Export data</span></SectionTitle>
       <p className="-mt-2 mb-3 text-sm text-muted">
         Export your expenses as a spreadsheet (CSV) or a printable monthly statement (PDF).
       </p>
@@ -680,7 +679,7 @@ function BadgesCard() {
     <Card>
       <div id="badges" className="scroll-mt-6" />
       <SectionTitle>
-        🏅 Badges · {have.size}/{BADGES.length}
+        <span className="flex items-center gap-1.5"><Medal size={14} className="text-[#C8B6FF]" /> Badges · {have.size}/{BADGES.length}</span>
       </SectionTitle>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {BADGES.map((b) => {
@@ -745,7 +744,7 @@ function ReminderCard({ settings }: { settings: Settings }) {
   return (
     <Card>
       <div className="flex items-center justify-between">
-        <SectionTitle>⏰ Daily reminder</SectionTitle>
+        <SectionTitle><span className="flex items-center gap-1.5"><Bell size={16} className="text-[#FFD6A5]" /> Daily reminder</span></SectionTitle>
         {permission === "granted" && notificationsEnabled && (
           <span className="flex items-center gap-1.5 text-xs font-semibold text-good">
             <span className="size-2 rounded-full bg-good animate-pulse" />
@@ -856,7 +855,7 @@ function AppearanceCard() {
   }
   return (
     <Card>
-      <SectionTitle>🎨 Appearance</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Palette size={16} className="text-[#E4C1F9]" /> Appearance</span></SectionTitle>
       <Segmented
         className="w-full"
         value={theme}
@@ -876,7 +875,7 @@ function FeedbackCard() {
   const [preview, setPreview] = useState("");
   return (
     <Card>
-      <SectionTitle>💬 Help improve Kharcha</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><MessageCircle size={16} className="text-[#B8F2E6]" /> Help improve Kharcha</span></SectionTitle>
       <p className="mb-3 text-sm text-muted">
         Found a bug or have an idea? Your usage summary has counts only (days used, things you tried) – never amounts, items or names.
       </p>
@@ -914,19 +913,23 @@ function AICard({ settings }: { settings: Settings }) {
   }, []);
   return (
     <Card>
-      <SectionTitle>🦉 AI guide</SectionTitle>
-      <p className="text-sm">
-        Status:{" "}
+      <SectionTitle><span className="flex items-center gap-1.5"><Heart size={16} className="text-[#FFC6D9]" /> AI guide</span></SectionTitle>
+      <div className="flex items-center gap-2">
+        <span className="text-sm">Status:</span>
         {status == null ? (
-          "checking…"
+          <span className="text-sm text-muted">checking…</span>
         ) : status.ai ? (
-          <b className="text-good">
-            online ({status.provider === "builtin" ? "Built-in offline engine" : status.provider === "gemini" ? "Google Gemini" : status.provider === "groq" ? "Groq (Llama 3.3)" : status.provider === "openrouter" ? "OpenRouter" : status.provider === "huggingface" ? "Hugging Face" : status.provider === "local" ? "Local LLM" : "Claude"})
-          </b>
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-good">
+            <span className="size-2 rounded-full bg-good animate-pulse" />
+            Online
+          </span>
         ) : (
-          <b className="text-bad">offline</b>
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-bad">
+            <span className="size-2 rounded-full bg-bad" />
+            Offline
+          </span>
         )}
-      </p>
+      </div>
       {status?.passcodeRequired && (
         <div className="mt-3 flex gap-2">
           <Input type="password" aria-label="App passcode" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="App passcode" />
@@ -980,7 +983,7 @@ function DataCard({ settings }: { settings: Settings }) {
 
   return (
     <Card>
-      <SectionTitle>☁️ Cloud sync & backup</SectionTitle>
+      <SectionTitle><span className="flex items-center gap-1.5"><Cloud size={16} className="text-[#A0C4FF]" /> Cloud sync & backup</span></SectionTitle>
       <div className="mb-4">
         <CloudSyncStatus />
       </div>
@@ -1008,23 +1011,24 @@ function DataCard({ settings }: { settings: Settings }) {
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <a
           href="/Kharcha.apk"
           download="Kharcha.apk"
-          className="inline-flex h-11 items-center gap-2 rounded-2xl bg-accent px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] dark:text-[#15142a]"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-accent px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[0.98] dark:text-[#15142a]"
         >
-          <Smartphone size={16} /> Install App (.apk)
+          <Smartphone size={16} /> Install App
         </a>
-        <Button onClick={doExport}>
-          <Download size={16} /> Export backup
+        <Button onClick={doExport} className="justify-center">
+          <Download size={16} /> Export Backup
         </Button>
-        <Button variant="soft" onClick={() => fileRef.current?.click()}>
-          <Upload size={16} /> Import backup
+        <Button variant="soft" onClick={() => fileRef.current?.click()} className="justify-center">
+          <Upload size={16} /> Import Backup
         </Button>
         <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => e.target.files?.[0] && doImport(e.target.files[0])} />
         <Button
           variant="danger"
+          className="justify-center"
           onClick={async () => {
             if (!window.confirm("Delete ALL data on this device? This can't be undone.")) return;
             try {
@@ -1035,7 +1039,7 @@ function DataCard({ settings }: { settings: Settings }) {
             window.location.reload();
           }}
         >
-          <Trash2 size={16} /> Reset everything
+          <Trash2 size={16} /> Reset All
         </Button>
       </div>
     </Card>

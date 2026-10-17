@@ -2,7 +2,7 @@
 
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowRight, Send } from "lucide-react";
+import { ArrowRight, Receipt, Send, Target, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -333,7 +333,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
             <h2 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-ink">
-              <span>🎯</span> Challenges &amp; Insights
+              <Target size={14} className="text-accent" /> Challenges & Insights
             </h2>
             <p className="text-[11px] sm:text-xs text-muted truncate">Savings habits &amp; waste audit</p>
           </div>
@@ -356,7 +356,7 @@ export default function Dashboard() {
 
       <Card delay={0.1}>
         <SectionTitle action={<button onClick={() => openAdd({ tab: "form" })} className="text-sm font-semibold text-accent">Full form</button>}>
-          ⚡ Quick add
+          <span className="flex items-center gap-1.5"><Zap size={14} className="text-[#FFD6A5]" /> Quick add</span>
         </SectionTitle>
         <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <button
@@ -406,7 +406,7 @@ export default function Dashboard() {
               </Link>
             }
           >
-            🧾 Recent
+            <span className="flex items-center gap-1.5"><Receipt size={14} className="text-[#FFC6D9]" /> Recent</span>
           </SectionTitle>
           {expenses.length === 0 ? (
             <EmptyState emoji="🪙" title="Nothing logged yet">
@@ -458,7 +458,7 @@ export default function Dashboard() {
                   </Link>
                 }
               >
-                🎯 Saving for
+                <span className="flex items-center gap-1.5"><Target size={14} className="text-[#B8F2E6]" /> Saving for</span>
               </SectionTitle>
               <div className="space-y-3">
                 {activeGoals.map((g) => {

@@ -1,15 +1,15 @@
 "use client";
 
 import { addMonths, differenceInCalendarDays, format } from "date-fns";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { useUI } from "@/components/AppShell";
-import { Button, Card, EmptyState, Input, Label, PageHeader, Progress, Sheet, cn } from "@/components/ui";
-import { goalPerDay, goalSaved } from "@/lib/budget";
+import { Button, Card, EmptyState, Input, Label, PageHeader, Progress, SectionTitle, Sheet, cn } from "@/components/ui";
+import { budgetFor, getPeriod, goalPerDay, goalSaved, inRange } from "@/lib/budget";
 import { celebrate } from "@/lib/confetti";
 import { db, uid } from "@/lib/db";
 import { dayKey, parseDayKey, rupee, timestamp } from "@/lib/format";
-import { useContributions, useGoals, useNow } from "@/lib/hooks";
+import { useCategories, useContributions, useExpenses, useGoals, useNow, useSettings } from "@/lib/hooks";
 import { recordLocalDeletion } from "@/lib/sync";
 import type { Goal } from "@/lib/types";
 
@@ -122,6 +122,8 @@ export default function GoalsPage() {
           </div>
         </Card>
       )}
+
+      <SpendingLimitsCard />
 
       <NewGoalSheet open={creating} onClose={() => setCreating(false)} />
       <ContributeSheet
@@ -277,5 +279,117 @@ function ContributeSheet({
         </Button>
       </form>
     </Sheet>
+  );
+}
+
+function SpendingLimitsCard() {
+  const settings = useSettings();
+  const categories = useCategories();
+  const expenses = useExpenses();
+  const now = useNow();
+
+  if (!settings) return null;
+
+  const budgets = settings.categoryBudgets ?? {};
+  const period = getPeriod(now, settings.monthStartDay);
+
+  const catSpend = new Map<string, number>();
+  if (expenses) {
+    for (const e of expenses) {
+      if (!inRange(e.ts, period.start, period.nextStart)) continue;
+      catSpend.set(e.categoryId, (catSpend.get(e.categoryId) ?? 0) + e.amount);
+    }
+  }
+
+  async function updateBudget(catId: string, value: string) {
+    const n = Number(value);
+    const next = { ...budgets };
+    if (n > 0) next[catId] = n;
+    else delete next[catId];
+    await db.settings.update("me", { categoryBudgets: next });
+  }
+
+  const catsWithCaps = categories.filter((c) => budgets[c.id] != null);
+  const catsWithoutCaps = categories.filter((c) => budgets[c.id] == null);
+
+  return (
+    <Card delay={0.3}>
+      <SectionTitle>
+        <span className="flex items-center gap-1.5">
+          <ShieldAlert size={16} className="text-accent" />
+          Spending Limits
+        </span>
+      </SectionTitle>
+      <p className="-mt-2 mb-3 text-sm text-muted">
+        Set monthly spend caps per category to keep your goals on track. Leave blank for no limit.
+      </p>
+
+      {catsWithCaps.length > 0 && (
+        <div className="space-y-3 mb-4">
+          {catsWithCaps.map((c) => {
+            const cap = budgets[c.id];
+            const spent = catSpend.get(c.id) ?? 0;
+            const pct = cap > 0 ? Math.min(1, spent / cap) : 0;
+            const isOver = spent >= cap;
+            const isNear = spent >= cap * 0.9 && !isOver;
+            return (
+              <div key={c.id} className="rounded-2xl border border-line bg-bg-soft p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{c.emoji}</span>
+                  <span className="flex-1 text-sm font-semibold truncate">{c.name}</span>
+                  <span className={cn("text-sm font-bold num", isOver ? "text-bad" : isNear ? "text-warn" : "text-good")}>
+                    {rupee(spent)} / {rupee(cap)}
+                  </span>
+                </div>
+                <Progress
+                  value={pct}
+                  color={isOver ? "var(--bad)" : isNear ? "#ffb86b" : "var(--s-need)"}
+                  className="h-2"
+                />
+                <div className="flex items-center justify-between mt-2">
+                  <Input
+                    aria-label={`Budget cap for ${c.name}`}
+                    type="number"
+                    min={0}
+                    placeholder="No cap"
+                    value={budgets[c.id] ?? ""}
+                    onChange={(e) => updateBudget(c.id, e.target.value)}
+                    className="w-24 num px-2 text-sm"
+                  />
+                  <span className="text-xs text-muted">
+                    {isOver ? "Over limit!" : isNear ? "Almost there" : `${rupee(cap - spent)} left`}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {catsWithoutCaps.length > 0 && (
+        <div>
+          {catsWithCaps.length > 0 && (
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Other categories</p>
+          )}
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {catsWithoutCaps.map((c) => (
+              <li key={c.id} className="flex items-center gap-2">
+                <span className="w-7 text-center text-lg">{c.emoji}</span>
+                <span className="flex-1 truncate text-sm">{c.name}</span>
+                <Input
+                  aria-label={`Budget cap for ${c.name}`}
+                  type="number"
+                  min={0}
+                  placeholder="No cap"
+                  value=""
+                  onChange={(e) => updateBudget(c.id, e.target.value)}
+                  className="w-24 num px-2 text-sm"
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Card>
   );
 }

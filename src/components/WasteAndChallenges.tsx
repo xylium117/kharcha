@@ -112,9 +112,9 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold">🔥 Waste Audit</h2>
-            <p className="text-sm text-[var(--muted)]">This month's money burned on "Waste"</p>
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold truncate">🔥 Waste Audit</h2>
+            <p className="text-xs sm:text-sm text-[var(--muted)] truncate">This month's "Waste" expenses</p>
           </div>
           <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--bg-soft)]">
             <X size={16} />
@@ -318,19 +318,19 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-[var(--bg)] p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
+        className="w-full max-w-lg rounded-t-3xl sm:rounded-3xl bg-[var(--bg)] px-4 py-5 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              🏆 Mini Savings Challenges
+        <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+          <div className="min-w-0">
+            <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">
+              🏆 Savings Challenges
             </h2>
-            <p className="text-sm text-[var(--muted)]">
-              {completed.size}/{CHALLENGES.length} challenges claimed · auto-evaluated
+            <p className="text-xs sm:text-sm text-[var(--muted)] truncate">
+              {completed.size}/{CHALLENGES.length} claimed · auto-evaluated
             </p>
           </div>
-          <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--bg-soft)]">
+          <button onClick={onClose} className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--bg-soft)]">
             <X size={16} />
           </button>
         </div>
@@ -353,8 +353,8 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
                       : "border-[var(--line)] bg-[var(--bg-soft)]"
                 }`}
               >
-                <div className="flex items-start gap-3">
-                  <span className="text-3xl shrink-0">{ch.icon}</span>
+                <div className="flex items-start gap-2.5 sm:gap-3">
+                  <span className="text-2xl sm:text-3xl shrink-0">{ch.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-sm">{ch.name}</h3>
