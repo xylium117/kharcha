@@ -54,9 +54,10 @@ vi.mock("firebase/firestore", () => ({
     commit: vi.fn(async () => {}),
   })),
   deleteDoc: vi.fn(async () => {}),
+  setDoc: vi.fn(async () => {}),
 }));
 
-const { syncWithCloudCore } = await import("../src/lib/sync");
+const { syncWithCloudCore, AUTOSYNC_CONFIG } = await import("../src/lib/sync");
 
 describe("cloud-first startup sync", () => {
   beforeEach(async () => {
@@ -77,8 +78,19 @@ describe("cloud-first startup sync", () => {
     db.close();
   });
 
-  it("loads cloud settings locally before uploading them", async () => {
+  it("replaces local records with cloud data without uploading stale local records", async () => {
     const localSettings = defaultSettings("Local", 6000);
+    await db.settings.put(localSettings);
+    await db.expenses.put({
+      id: "stale-local-expense",
+      amount: 50,
+      title: "Stale",
+      categoryId: "food",
+      paymentMode: "Cash",
+      tag: "need",
+      source: "form",
+      ts: Date.now(),
+    });
     const cloudSettings = {
       ...defaultSettings("Cloud", 9000),
       seasonMode: "exam",
@@ -89,10 +101,8 @@ describe("cloud-first startup sync", () => {
     await syncWithCloudCore({ preferCloud: true });
 
     expect(await db.settings.get("me")).toEqual(cloudSettings);
-    expect(mockState.writes).toContainEqual({
-      path: "users/user-123/settings/me",
-      data: cloudSettings,
-    });
+    expect(await db.expenses.count()).toBe(0);
+    expect(mockState.writes).toHaveLength(0);
   });
 
   it("keeps and uploads local settings when the cloud is empty", async () => {
@@ -106,6 +116,15 @@ describe("cloud-first startup sync", () => {
       path: "users/user-123/settings/me",
       data: localSettings,
     });
+  });
+
+  it("does not clear local data when the cloud has no records", async () => {
+    const localSettings = defaultSettings("Local", 6000);
+    await db.settings.put(localSettings);
+
+    await syncWithCloudCore({ preferCloud: true });
+
+    expect(await db.settings.get("me")).toEqual(localSettings);
   });
 
   it("uploads income records added from the home page", async () => {
@@ -157,5 +176,19 @@ describe("cloud-first startup sync", () => {
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     expect(mockState.reads).toBe(TABLE_NAMES.length + 1);
+  });
+
+  it("defines safe autosync intervals protecting base plan Firestore limits", () => {
+    expect(AUTOSYNC_CONFIG.DEBOUNCE_MS).toBeGreaterThanOrEqual(15_000);
+    expect(AUTOSYNC_CONFIG.MAX_WAIT_MS).toBeLessThanOrEqual(120_000);
+    expect(AUTOSYNC_CONFIG.VISIBILITY_COOLDOWN_MS).toBeGreaterThanOrEqual(180_000);
+    expect(AUTOSYNC_CONFIG.PERIODIC_SYNC_INTERVAL_MS).toBeGreaterThanOrEqual(600_000);
+  });
+
+  it("conserves Firestore reads during local change auto-upload", async () => {
+    mockState.reads = 0;
+    await syncWithCloudCore({ isAutoUpload: true });
+    // Local auto-upload only pushes modified local records, skipping full cloud table pull
+    expect(mockState.reads).toBe(0);
   });
 });

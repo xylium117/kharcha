@@ -30,9 +30,8 @@ export const DEFAULT_QUICK_BUTTONS: QuickButton[] = [
   { id: "q-tea", label: "Tea", emoji: "☕", amount: 15, categoryId: "chai", order: 0, tag: "need", paymentMode: "Cash" },
   { id: "q-bus", label: "Bus", emoji: "🚌", amount: 20, categoryId: "transport", order: 1, tag: "need", paymentMode: "Cash" },
   { id: "q-canteen", label: "Canteen", emoji: "🍜", amount: 60, categoryId: "food", order: 2, tag: "need", paymentMode: "UPI" },
-  { id: "q-xerox", label: "Xerox", emoji: "📄", amount: 10, categoryId: "books", order: 3, tag: "need", paymentMode: "Cash" },
-  { id: "q-snack", label: "Snacks", emoji: "🥪", amount: 30, categoryId: "chai", order: 4, tag: "want", paymentMode: "Cash" },
-  { id: "q-auto", label: "Auto", emoji: "🛺", amount: 40, categoryId: "transport", order: 5, tag: "need", paymentMode: "UPI" },
+  { id: "q-snack", label: "Snacks", emoji: "🥪", amount: 30, categoryId: "chai", order: 3, tag: "want", paymentMode: "Cash" },
+  { id: "q-auto", label: "Auto", emoji: "🛺", amount: 40, categoryId: "transport", order: 4, tag: "need", paymentMode: "UPI" },
 ];
 
 export function defaultSettings(name: string, monthlyBudget: number): Settings {

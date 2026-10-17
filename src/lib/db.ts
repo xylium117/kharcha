@@ -29,7 +29,10 @@ export class KharchaDB extends Dexie {
   wishlist!: EntityTable<WishItem, "id">;
   reports!: EntityTable<WeeklyReport, "weekStart">;
   income!: EntityTable<Income, "id">;
-  deletedRecords!: EntityTable<{ id: string; table: string; deletedAt: number }, "id">;
+  deletedRecords!: EntityTable<
+    { id: string; table: string; deletedAt: number; syncedAt?: number },
+    "id"
+  >;
 
   constructor() {
     super("kharcha");

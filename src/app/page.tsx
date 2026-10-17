@@ -5,7 +5,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { ArrowRight, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AddMoneySheet } from "@/components/AddMoneySheet";
 import { useAddExpense } from "@/components/AddExpenseSheet";
 import { useUI } from "@/components/AppShell";
@@ -49,6 +49,15 @@ export default function Dashboard() {
   const router = useRouter();
   const [ask, setAsk] = useState("");
   const quick = useLiveQuery(() => db.quickButtons.orderBy("order").toArray(), []) ?? [];
+  const quickButtons = useMemo(
+    () => quick.filter((q) => q.id !== "q-xerox" && q.label.toLowerCase() !== "xerox"),
+    [quick],
+  );
+
+  useEffect(() => {
+    db.quickButtons.where("id").equals("q-xerox").delete().catch(() => {});
+  }, []);
+
   const badgeCount = useLiveQuery(() => db.badges.count(), []) ?? 0;
   const { quickAdd } = useAddExpense();
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -79,9 +88,18 @@ export default function Dashboard() {
   const over = budget.safeToday < 0;
   const week = weekNumber(settings.createdAt, now);
 
-  async function markNoSpend() {
+  const todayKey = dayKey(now);
+  const isTodayNoSpend = !!settings.noSpendDays?.includes(todayKey);
+
+  async function toggleNoSpend() {
     if (!settings) return;
-    await db.settings.update("me", { noSpendDays: [...settings.noSpendDays, dayKey(now)] });
+    if (isTodayNoSpend) {
+      const updated = settings.noSpendDays.filter((d) => d !== todayKey);
+      await db.settings.update("me", { noSpendDays: updated });
+      toast({ emoji: "↩️", message: "No-spend day removed" });
+      return;
+    }
+    await db.settings.update("me", { noSpendDays: [...settings.noSpendDays, todayKey] });
     celebrate();
     toast({ emoji: "0️⃣", tone: "good", message: "No-spend day logged. Legend! 🏆" });
   }
@@ -181,8 +199,8 @@ export default function Dashboard() {
             <button onClick={() => openAdd()} className="h-9 rounded-full bg-accent px-3 text-xs font-bold text-white dark:text-[#15142a]">
               Add expense
             </button>
-            <button onClick={markNoSpend} className="h-9 rounded-full bg-bg-soft px-3 text-xs font-bold">
-              I spent ₹0
+            <button onClick={toggleNoSpend} className="h-9 rounded-full bg-bg-soft px-3 text-xs font-bold">
+              {isTodayNoSpend ? "₹0 logged" : "I spent ₹0"}
             </button>
           </span>
         </div>
@@ -285,7 +303,32 @@ export default function Dashboard() {
           ⚡ Quick add
         </SectionTitle>
         <div className="scrollbar-none -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {quick.map((q) => (
+          {/* ₹0 Spend Quick Button */}
+          <button
+            onClick={toggleNoSpend}
+            className={cn(
+              "flex shrink-0 items-center gap-2 rounded-2xl border py-1.5 pl-1.5 pr-3 text-sm font-semibold transition hover:-translate-y-0.5 active:scale-95",
+              isTodayNoSpend
+                ? "border-good bg-good/15 text-good shadow-soft"
+                : "border-line bg-bg-soft hover:border-good/50 text-ink"
+            )}
+            title={isTodayNoSpend ? "Tap to remove ₹0 day" : "Log ₹0 spend today"}
+          >
+            <span
+              className={cn(
+                "grid size-8 place-items-center rounded-xl text-lg transition-transform",
+                isTodayNoSpend ? "bg-good/25 scale-105" : "bg-[#CAFFBF]"
+              )}
+            >
+              {isTodayNoSpend ? "✅" : "0️⃣"}
+            </span>
+            <span>{isTodayNoSpend ? "₹0 Logged" : "₹0 Spent"}</span>
+            <span className="num text-xs font-bold text-good">
+              {rupee(0)}
+            </span>
+          </button>
+
+          {quickButtons.map((q) => (
             <button
               key={q.id}
               onClick={() => quickAdd(q)}
@@ -296,14 +339,6 @@ export default function Dashboard() {
               </span> {q.label} <span className="num text-muted">{rupee(q.amount)}</span>
             </button>
           ))}
-          {!streaks.todayActive && (
-            <button
-              onClick={markNoSpend}
-              className="flex shrink-0 items-center gap-2 rounded-2xl border border-dashed border-good/50 px-3 py-2 text-sm font-semibold text-good"
-            >
-              🙌 I spent ₹0 today
-            </button>
-          )}
         </div>
       </Card>
 

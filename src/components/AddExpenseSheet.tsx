@@ -6,9 +6,10 @@ import { Sparkles, Trash2, Wand2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getAIStatus, parseExpenseText } from "@/lib/ai-client";
+import { celebrate } from "@/lib/confetti";
 import { db, uid } from "@/lib/db";
 import { MOODS, PAYMENT_MODES, TAGS } from "@/lib/defaults";
-import { rupee, timestamp } from "@/lib/format";
+import { dayKey, rupee, timestamp } from "@/lib/format";
 import { useCategories } from "@/lib/hooks";
 import type { Expense, PaymentMode, QuickButton, Tag } from "@/lib/types";
 import { useUI } from "./AppShell";
@@ -203,22 +204,50 @@ export function AddExpenseSheet({
       {tab === "quick" && !edit && (
         <div>
           <div className="grid grid-cols-3 gap-2">
-            {quick.map((q) => {
-              const cat = catOf(q.categoryId);
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => quickAdd(q)}
-                  className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-bg-soft p-3 transition hover:-translate-y-0.5 hover:border-accent/40 active:scale-95"
-                >
-                  <span className="grid size-11 place-items-center rounded-xl text-2xl" style={{ background: cat?.color ?? "#C8B6FF" }}>
-                    {q.emoji}
-                  </span>
-                  <span className="text-sm font-semibold">{q.label}</span>
-                  <span className="num text-xs text-muted">{rupee(q.amount)}</span>
-                </button>
-              );
-            })}
+            <button
+              onClick={async () => {
+                const todayStr = dayKey(new Date());
+                const s = await db.settings.get("me");
+                if (s) {
+                  const already = s.noSpendDays?.includes(todayStr);
+                  if (!already) {
+                    await db.settings.update("me", {
+                      noSpendDays: [...(s.noSpendDays ?? []), todayStr],
+                    });
+                    celebrate();
+                    toast({ emoji: "0️⃣", tone: "good", message: "No-spend day logged. Legend! 🏆" });
+                  } else {
+                    toast({ emoji: "✅", message: "Today is already logged as ₹0 spent!" });
+                  }
+                }
+                onClose();
+              }}
+              className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-bg-soft p-3 transition hover:-translate-y-0.5 hover:border-good/50 active:scale-95"
+            >
+              <span className="grid size-11 place-items-center rounded-xl text-2xl bg-[#CAFFBF]">
+                0️⃣
+              </span>
+              <span className="text-sm font-semibold">₹0 Spent</span>
+              <span className="num text-xs font-bold text-good">{rupee(0)}</span>
+            </button>
+            {quick
+              .filter((q) => q.id !== "q-xerox" && q.label.toLowerCase() !== "xerox")
+              .map((q) => {
+                const cat = catOf(q.categoryId);
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => quickAdd(q)}
+                    className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-bg-soft p-3 transition hover:-translate-y-0.5 hover:border-accent/40 active:scale-95"
+                  >
+                    <span className="grid size-11 place-items-center rounded-xl text-2xl" style={{ background: cat?.color ?? "#C8B6FF" }}>
+                      {q.emoji}
+                    </span>
+                    <span className="text-sm font-semibold">{q.label}</span>
+                    <span className="num text-xs text-muted">{rupee(q.amount)}</span>
+                  </button>
+                );
+              })}
           </div>
           <p className="mt-3 text-center text-xs text-muted">
             One tap logs it right now. Customize these in{" "}
