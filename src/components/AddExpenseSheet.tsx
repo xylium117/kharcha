@@ -2,7 +2,8 @@
 
 import { format } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Sparkles, Trash2, Wand2 } from "lucide-react";
+import { FileText, Sparkles, Trash2, Wand2, Zap, ShieldCheck } from "lucide-react";
+import { AppIcon } from "./AppIcon";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { getAIStatus, parseExpenseText } from "@/lib/ai-client";
@@ -53,14 +54,14 @@ export function useAddExpense() {
     await db.expenses.add(e);
     const cat = categories.find((c) => c.id === e.categoryId);
     toast({
-      emoji: cat?.emoji ?? "✅",
+      emoji: cat?.emoji || cat?.id || "check",
       message: `${e.title} ${rupee(e.amount)} added`,
       action: { label: "Undo", onClick: () => db.expenses.delete(e.id) },
     });
     const isToday = format(e.ts, "yyyy-MM-dd") === format(timestamp(), "yyyy-MM-dd");
     if (budget && isToday && budget.safeToday >= 0 && budget.safeToday - e.amount < 0) {
       const over = e.amount - budget.safeToday;
-      setTimeout(() => toast({ emoji: "😬", tone: "warn", message: `That's ${rupee(over)} over today's safe-to-spend.` }), 400);
+      setTimeout(() => toast({ emoji: "warn", tone: "warn", message: `That's ${rupee(over)} over today's safe-to-spend.` }), 400);
     }
   }
 
@@ -143,7 +144,7 @@ export function AddExpenseSheet({
     };
     if (edit) {
       await db.expenses.update(edit.id, data);
-      toast({ emoji: "✏️", message: "Expense updated" });
+      toast({ emoji: "edit", message: "Expense updated" });
     } else {
       await addExpense({ id: uid(), source: aiFilled ? "ai" : "form", ...data });
     }
@@ -153,7 +154,7 @@ export function AddExpenseSheet({
   async function remove() {
     if (!edit) return;
     await db.expenses.delete(edit.id);
-    toast({ emoji: "🗑️", message: `${edit.title} deleted`, action: { label: "Undo", onClick: () => db.expenses.add(edit) } });
+    toast({ emoji: "trash", message: `${edit.title} deleted`, action: { label: "Undo", onClick: () => db.expenses.add(edit) } });
     onClose();
   }
 
@@ -194,9 +195,9 @@ export function AddExpenseSheet({
           value={tab}
           onChange={setTab}
           options={[
-            { value: "quick", label: "⚡ Quick" },
-            { value: "form", label: "📝 Form" },
-            { value: "ai", label: "✨ Just type" },
+            { value: "quick", label: <span className="flex items-center justify-center gap-1.5"><Zap size={14} className="text-[#FFD166]" /> Quick</span> },
+            { value: "form", label: <span className="flex items-center justify-center gap-1.5"><FileText size={14} className="text-[#B8F2E6]" /> Form</span> },
+            { value: "ai", label: <span className="flex items-center justify-center gap-1.5"><Sparkles size={14} className="text-[#FFAA00]" /> Just type</span> },
           ]}
         />
       )}
@@ -215,16 +216,16 @@ export function AddExpenseSheet({
                       noSpendDays: [...(s.noSpendDays ?? []), todayStr],
                     });
                     celebrate();
-                    toast({ emoji: "0️⃣", tone: "good", message: "No-spend day logged. Legend! 🏆" });
+                    toast({ emoji: "0️⃣", tone: "good", message: "No-spend day logged. Legend!" });
                   } else {
-                    toast({ emoji: "✅", message: "Today is already logged as ₹0 spent!" });
+                    toast({ emoji: "check", message: "Today is already logged as ₹0 spent!" });
                   }
                 }
                 onClose();
               }}
               className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-bg-soft p-3 transition hover:-translate-y-0.5 hover:border-good/50 active:scale-95"
             >
-              <span className="grid size-11 place-items-center rounded-xl text-2xl bg-[#CAFFBF]">
+              <span className="grid size-11 place-items-center rounded-xl bg-[#CAFFBF] text-2xl" role="img">
                 0️⃣
               </span>
               <span className="text-sm font-semibold">₹0 Spent</span>
@@ -241,7 +242,7 @@ export function AddExpenseSheet({
                     className="flex flex-col items-center gap-1 rounded-2xl border border-line bg-bg-soft p-3 transition hover:-translate-y-0.5 hover:border-accent/40 active:scale-95"
                   >
                     <span className="grid size-11 place-items-center rounded-xl text-2xl" style={{ background: cat?.color ?? "#C8B6FF" }}>
-                      {q.emoji}
+                      <AppIcon name={q.emoji || q.categoryId} size={22} />
                     </span>
                     <span className="text-sm font-semibold">{q.label}</span>
                     <span className="num text-xs text-muted">{rupee(q.amount)}</span>
@@ -329,7 +330,7 @@ export function AddExpenseSheet({
             <div className="flex flex-wrap gap-2">
               {categories.map((c) => (
                 <Chip key={c.id} active={form.categoryId === c.id} color={c.color} onClick={() => set("categoryId", c.id)}>
-                  <span>{c.emoji}</span> {c.name}
+                  <AppIcon name={c.emoji || c.id} size={15} /> {c.name}
                 </Chip>
               ))}
             </div>
@@ -340,7 +341,7 @@ export function AddExpenseSheet({
             <div className="grid grid-cols-3 gap-2">
               {TAGS.map((t) => (
                 <Chip key={t.id} active={form.tag === t.id} color={t.color} onClick={() => set("tag", t.id)} className="justify-center">
-                  {t.emoji} {t.label}
+                  <AppIcon name={t.id} size={14} /> {t.label}
                 </Chip>
               ))}
             </div>
@@ -383,11 +384,11 @@ export function AddExpenseSheet({
                     aria-pressed={form.mood === m}
                     onClick={() => set("mood", form.mood === m ? "" : m)}
                     className={cn(
-                      "grid size-11 place-items-center rounded-2xl text-xl transition",
+                      "grid size-11 place-items-center rounded-2xl transition",
                       form.mood === m ? "bg-accent-soft ring-2 ring-accent" : "bg-bg-soft opacity-70 hover:opacity-100",
                     )}
                   >
-                    {m}
+                    <AppIcon name={m} size={22} />
                   </button>
                 ))}
               </div>

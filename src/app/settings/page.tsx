@@ -2,7 +2,8 @@
 
 import { addMonths, format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowUp, Bell, BellRing, Calendar, Cloud, Coins, Download, FileDown, FileText, Gauge, GraduationCap, Heart, Medal, MessageCircle, Palette, Plus, Repeat, Smartphone, Snowflake, Tag as TagIcon, Trash2, Upload, User, Zap } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, Bell, BellRing, Calendar, Check, CheckCircle2, Cloud, Coins, Download, FileDown, FileText, Gauge, GraduationCap, Heart, Laptop, Medal, MessageCircle, Moon, Palette, Plus, Repeat, Shield, ShieldCheck, Smartphone, Snowflake, Sun, Tag as TagIcon, Trash2, Upload, User, Zap } from "lucide-react";
+import { AppIcon } from "@/components/AppIcon";
 import { useEffect, useRef, useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, Input, Label, PageHeader, SectionTitle, Segmented, Select, cn } from "@/components/ui";
@@ -111,7 +112,7 @@ function ProfileCard({ settings }: { settings: Settings }) {
       monthStartDay: Math.min(28, Math.max(1, Number(startDay) || 1)),
       academicStartMonth: Number(acad),
     });
-    toast({ emoji: "✅", message: "Saved" });
+    toast({ emoji: "check", message: "Saved" });
   }
 
   return (
@@ -157,10 +158,10 @@ function ProfileCard({ settings }: { settings: Settings }) {
 }
 
 const SEASONS: { id: SeasonMode; emoji: string; name: string; desc: string }[] = [
-  { id: "normal", emoji: "🌤️", name: "Normal", desc: "Regular college days" },
-  { id: "exam", emoji: "📚", name: "Exam season", desc: "Food, notes & travel first; Stash gets strict on fun" },
-  { id: "fest", emoji: "🎉", name: "Fest mode", desc: "Add a fest fund on top of this month's budget" },
-  { id: "home", emoji: "🏠", name: "Home trip", desc: "Lower budget while you're home – save the rest" },
+  { id: "normal", emoji: "normal", name: "Normal", desc: "Regular college days" },
+  { id: "exam", emoji: "exam", name: "Exam season", desc: "Food, notes & travel first; Stash gets strict on fun" },
+  { id: "fest", emoji: "fest", name: "Fest mode", desc: "Add a fest fund on top of this month's budget" },
+  { id: "home", emoji: "home", name: "Home trip", desc: "Lower budget while you're home – save the rest" },
 ];
 
 function SeasonCard({ settings }: { settings: Settings }) {
@@ -221,7 +222,7 @@ function SeasonCard({ settings }: { settings: Settings }) {
               picked === s.id ? "border-accent bg-accent-soft" : "border-line hover:border-accent/40",
             )}
           >
-            <div className="text-2xl">{s.emoji}</div>
+            <div className="mb-1"><AppIcon name={s.id} size={22} /></div>
             <div className="mt-1 text-sm font-bold">
               {s.name} {settings.seasonMode === s.id && <span className="text-xs font-semibold text-accent">· on</span>}
             </div>
@@ -364,7 +365,7 @@ function RecurringCard() {
         {recurring.length === 0 && <li className="text-sm text-muted">Phone recharge, subscriptions, mess fees… add them once and forget.</li>}
         {recurring.map((r) => (
           <li key={r.id} className={cn("flex items-center gap-3 rounded-2xl bg-bg-soft p-2.5", !r.active && "opacity-50")}>
-            <span className="text-xl">{cats.get(r.categoryId)?.emoji ?? "🔁"}</span>
+            <span className="shrink-0"><AppIcon name={cats.get(r.categoryId)?.emoji || r.categoryId || "repeat"} size={20} /></span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">
                 {r.title} · <span className="num">{rupee(r.amount)}</span>
@@ -424,7 +425,7 @@ function CategoriesCard({ settings }: { settings: Settings }) {
       await db.categories.delete(c.id);
     });
     await recordLocalDeletion("categories", c.id);
-    toast({ emoji: "🗑️", message: `Deleted ${c.name}` });
+    toast({ emoji: "trash", message: `Deleted ${c.name}` });
   }
 
   return (
@@ -434,7 +435,7 @@ function CategoriesCard({ settings }: { settings: Settings }) {
           <Button
             size="sm"
             variant="soft"
-            onClick={() => db.categories.add({ id: uid(), name: "New category", emoji: "🏷️", color: PASTELS[categories.length % PASTELS.length] })}
+            onClick={() => db.categories.add({ id: uid(), name: "New category", emoji: "tag", color: PASTELS[categories.length % PASTELS.length] })}
           >
             <Plus size={14} /> Add
           </Button>
@@ -516,7 +517,7 @@ function BudgetScheduleCard({ settings }: { settings: Settings }) {
 
   async function save(s: "monthly" | "biweekly" | "weekly") {
     await db.settings.update("me", { budgetSchedule: s });
-    toast({ emoji: "📅", message: `Budget schedule set to ${s}` });
+    toast({ emoji: "calendar", message: `Budget schedule set to ${s}` });
   }
 
   return (
@@ -553,13 +554,13 @@ function StreakFreezeCard({ settings }: { settings: Settings }) {
     if (usedThisMonth) return;
     const next = [...freezesUsed, thisMonth];
     await db.settings.update("me", { streakFreezesUsed: next });
-    toast({ emoji: "🧊", tone: "good", message: "Streak freeze activated for this month!" });
+    toast({ emoji: "freeze", tone: "good", message: "Streak freeze activated for this month!" });
   }
 
   async function removeFreeze() {
     const next = freezesUsed.filter((m) => m !== thisMonth);
     await db.settings.update("me", { streakFreezesUsed: next });
-    toast({ emoji: "🔥", message: "Streak freeze removed for this month." });
+    toast({ emoji: "flame", message: "Streak freeze removed for this month." });
   }
 
   return (
@@ -570,13 +571,15 @@ function StreakFreezeCard({ settings }: { settings: Settings }) {
       </p>
       {usedThisMonth ? (
         <div className="rounded-2xl bg-[var(--accent-soft)] border border-[var(--accent)]/30 p-3">
-          <p className="text-sm font-semibold text-[var(--accent)]">🧊 Freeze active this month ({thisMonth})</p>
+          <p className="text-sm font-semibold text-[var(--accent)] flex items-center gap-1.5">
+            <Snowflake size={14} /> Freeze active this month ({thisMonth})
+          </p>
           <p className="text-xs text-muted mt-0.5">One missed day won't break your streak this month.</p>
           <button onClick={removeFreeze} className="mt-2 text-xs text-muted underline hover:text-bad">Remove freeze</button>
         </div>
       ) : (
-        <Button onClick={useFreeze} variant="soft">
-          🧊 Activate streak freeze for {format(now, "MMMM")}
+        <Button onClick={useFreeze} variant="soft" className="flex items-center gap-1.5">
+          <Snowflake size={14} /> Activate streak freeze for {format(now, "MMMM")}
         </Button>
       )}
       {freezesUsed.length > 0 && (
@@ -592,7 +595,7 @@ function CurrencyCard({ settings }: { settings: Settings }) {
 
   async function save(c: string) {
     await db.settings.update("me", { currency: c });
-    toast({ emoji: CURRENCY_MAP[c]?.symbol ?? "💱", message: `Currency set to ${c}` });
+    toast({ emoji: "coin", message: `Currency set to ${c}` });
   }
 
   return (
@@ -633,7 +636,7 @@ function ExportCard({ settings }: { settings: Settings }) {
     setExporting("csv");
     try {
       await exportExpensesCSV();
-      toast({ emoji: "📊", tone: "good", message: "Expenses exported as CSV" });
+      toast({ emoji: "chart", tone: "good", message: "Expenses exported as CSV" });
     } finally {
       setExporting(null);
     }
@@ -648,7 +651,7 @@ function ExportCard({ settings }: { settings: Settings }) {
       const monthExpenses = expenses.filter((e) => inRange(e.ts, period.start, period.nextStart));
       const catMap = new Map(categories.map((c) => [c.id, c]));
       await exportMonthPDF(monthLabel, monthExpenses, catMap, settings.currency ?? "INR", budgetFor(settings, period.key));
-      toast({ emoji: "📄", tone: "good", message: "Monthly PDF statement opened – print or Save as PDF" });
+      toast({ emoji: "doc", tone: "good", message: "Monthly PDF statement opened – print or Save as PDF" });
     } finally {
       setExporting(null);
     }
@@ -690,7 +693,7 @@ function BadgesCard() {
               title={b.description}
               className={cn("flex flex-col items-center gap-1 rounded-2xl border border-line p-3 text-center", at ? "bg-accent-soft" : "opacity-45 grayscale")}
             >
-              <span className="text-3xl">{b.emoji}</span>
+              <span className="shrink-0"><AppIcon name={b.emoji} size={28} /></span>
               <span className="text-xs font-bold">{b.name}</span>
               <span className="text-[10px] leading-tight text-muted">{at ? format(at, "d MMM yyyy") : b.description}</span>
             </div>
@@ -722,13 +725,13 @@ function ReminderCard({ settings }: { settings: Settings }) {
       setPermission(p);
       if (p === "granted") {
         await db.settings.update("me", { notificationsEnabled: true });
-        toast({ emoji: "🔔", tone: "good", message: `Daily notifications enabled for ${time}!` });
+        toast({ emoji: "bell", tone: "good", message: `Daily notifications enabled for ${time}!` });
         await showDailyReminderNotification(
-          "Kharcha 🦉 · Daily Reminders Active!",
+          "Kharcha · Daily Reminders Active!",
           `We'll notify you daily at ${time} to log your expenses.`
         );
       } else if (p === "denied") {
-        toast({ emoji: "⚠️", tone: "warn", message: "Notifications blocked in browser settings." });
+        toast({ emoji: "warn", tone: "warn", message: "Notifications blocked in browser settings." });
       }
       return;
     }
@@ -736,7 +739,7 @@ function ReminderCard({ settings }: { settings: Settings }) {
     const nextState = !notificationsEnabled;
     await db.settings.update("me", { notificationsEnabled: nextState });
     toast({
-      emoji: nextState ? "🔔" : "🔕",
+      emoji: nextState ? "bell" : "shield",
       message: nextState ? `Daily reminder set for ${time}` : "Daily notifications paused",
     });
   }
@@ -796,14 +799,17 @@ function ReminderCard({ settings }: { settings: Settings }) {
         </div>
 
         {permission === "denied" && (
-          <p className="rounded-2xl border border-bad/20 bg-bad/5 p-3 text-xs text-bad">
-            ⚠️ Notifications are blocked in your browser permissions. Allow notifications for this site to receive daily reminders.
+          <p className="rounded-2xl border border-bad/20 bg-bad/5 p-3 text-xs text-bad flex items-start gap-1.5">
+            <AlertTriangle size={14} className="shrink-0 mt-0.5 text-bad" />
+            <span>Notifications are blocked in your browser permissions. Allow notifications for this site to receive daily reminders.</span>
           </p>
         )}
 
         {permission === "granted" && notificationsEnabled && (
           <div className="rounded-2xl border border-mint/40 bg-mint/20 p-3 text-xs text-ink space-y-1">
-            <p className="font-semibold text-good">🦉 Daily reminder is set for {time}</p>
+            <p className="font-semibold text-good flex items-center gap-1.5">
+              <BellRing size={14} /> Daily reminder is set for {time}
+            </p>
             <p className="text-muted">
               Tapping the notification opens Kharcha directly so you can record your expenses in seconds.
             </p>
@@ -861,9 +867,9 @@ function AppearanceCard() {
         value={theme}
         onChange={pick}
         options={[
-          { value: "light", label: "☀️ Light" },
-          { value: "dark", label: "🌙 Dark" },
-          { value: "system", label: "💻 System" },
+          { value: "light", label: <span className="flex items-center justify-center gap-1.5"><Sun size={13} className="text-[#FFD166]" /> Light</span> },
+          { value: "dark", label: <span className="flex items-center justify-center gap-1.5"><Moon size={13} className="text-[#C8B6FF]" /> Dark</span> },
+          { value: "system", label: <span className="flex items-center justify-center gap-1.5"><Laptop size={13} className="text-[#4EA8DE]" /> System</span> },
         ]}
       />
     </Card>
@@ -894,7 +900,7 @@ function FeedbackCard() {
           variant="soft"
           onClick={async () => {
             setPreview(await usageSummary());
-            toast((await copyUsage()) ? { emoji: "📋", message: "Usage summary copied" } : { emoji: "⚠️", tone: "warn", message: "Couldn't copy – select the text below" });
+            toast((await copyUsage()) ? { emoji: "doc", message: "Usage summary copied" } : { emoji: "warn", tone: "warn", message: "Couldn't copy – select the text below" });
           }}
         >
           Copy my usage summary
@@ -954,7 +960,7 @@ function DataCard({ settings }: { settings: Settings }) {
 
   async function doExport() {
     await backupNow();
-    toast({ emoji: "💾", tone: "good", message: "Backup saved to your Downloads" });
+    toast({ emoji: "save", tone: "good", message: "Backup saved to your Downloads" });
   }
 
   async function protect() {
@@ -962,8 +968,8 @@ function DataCard({ settings }: { settings: Settings }) {
     setProtectedStorage(ok);
     toast(
       ok
-        ? { emoji: "🛡️", tone: "good", message: "This browser will keep your data" }
-        : { emoji: "⚠️", tone: "warn", message: "The browser said no – install the app to your home screen and try again" },
+        ? { emoji: "shield", tone: "good", message: "This browser will keep your data" }
+        : { emoji: "warn", tone: "warn", message: "The browser said no – install the app to your home screen and try again" },
     );
   }
 
@@ -973,9 +979,9 @@ function DataCard({ settings }: { settings: Settings }) {
       if (!isBackupFile(data)) throw new Error("Not a Kharcha backup file");
       if (!window.confirm("Replace ALL data on this device with this backup?")) return;
       await importBackup(data);
-      toast({ emoji: "📥", tone: "good", message: "Backup restored" });
+      toast({ emoji: "import", tone: "good", message: "Backup restored" });
     } catch (e) {
-      toast({ emoji: "⚠️", tone: "warn", message: e instanceof Error ? e.message : "Import failed" });
+      toast({ emoji: "warn", tone: "warn", message: e instanceof Error ? e.message : "Import failed" });
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -1001,7 +1007,7 @@ function DataCard({ settings }: { settings: Settings }) {
           <div>
             <div className="text-xs font-semibold text-muted">Storage</div>
             <div className="font-semibold">
-              {protectedStorage == null ? "Checking…" : protectedStorage ? "🛡️ Protected" : "⚠️ Browser may clear it"}
+              {protectedStorage == null ? "Checking…" : protectedStorage ? <span className="inline-flex items-center gap-1 text-good"><ShieldCheck size={14} /> Protected</span> : <span className="inline-flex items-center gap-1 text-warn"><AlertTriangle size={14} /> Browser may clear it</span>}
             </div>
           </div>
           {protectedStorage === false && (

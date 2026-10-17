@@ -3,7 +3,8 @@
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { useMemo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { AlertTriangle, TrendingDown, Flame, Award, X, CheckCircle2, Sparkles } from "lucide-react";
+import { AlertTriangle, TrendingDown, Flame, Award, X, CheckCircle2, Sparkles, Trophy, Lightbulb } from "lucide-react";
+import { AppIcon } from "./AppIcon";
 import { db } from "@/lib/db";
 import { useCategories, useExpenses, useNow, useSettings } from "@/lib/hooks";
 import { getPeriod, inRange, tagTotals } from "@/lib/budget";
@@ -28,7 +29,7 @@ export const CHALLENGES: Challenge[] = [
   {
     id: "no-zomato-7",
     name: "No Zomato/Swiggy – 7 Days",
-    icon: "🚫🍕",
+    icon: "no-junk",
     description: "Avoid ordering food online for 7 days straight. Cook, eat at mess, or grab something nearby.",
     days: 7,
     forbiddenCategory: "food",
@@ -36,7 +37,7 @@ export const CHALLENGES: Challenge[] = [
   {
     id: "weekend-under-300",
     name: "Weekend Under ₹300",
-    icon: "💰",
+    icon: "money",
     description: "Keep your weekend spending under ₹300 total (Sat + Sun combined).",
     days: 2,
     dailyCap: 150,
@@ -44,7 +45,7 @@ export const CHALLENGES: Challenge[] = [
   {
     id: "5-no-spend-days",
     name: "5 No-Spend Days in a Month",
-    icon: "🏆",
+    icon: "trophy",
     description: "Log 5 completely zero-spend days in a single month. Use the ₹0 button!",
     days: 30,
     noSpendDays: 5,
@@ -53,7 +54,7 @@ export const CHALLENGES: Challenge[] = [
   {
     id: "no-wants-3",
     name: "3-Day Wants Detox",
-    icon: "🧘",
+    icon: "zen",
     description: "Go 3 days without logging a single 'Want' expense. Needs only!",
     days: 3,
     forbiddenCategory: "want",
@@ -61,7 +62,7 @@ export const CHALLENGES: Challenge[] = [
   {
     id: "under-daily-5",
     name: "5 Days Under Daily Limit",
-    icon: "📉",
+    icon: "trend-down",
     description: "Stay under your daily budget limit for 5 consecutive days.",
     days: 5,
   },
@@ -113,7 +114,9 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
       >
         <div className="flex items-center justify-between mb-4">
           <div className="min-w-0">
-            <h2 className="text-lg sm:text-xl font-bold truncate">🔥 Waste Audit</h2>
+            <h2 className="text-lg sm:text-xl font-bold truncate flex items-center gap-2">
+              <Flame size={18} className="text-[#FF7043]" /> Waste Audit
+            </h2>
             <p className="text-xs sm:text-sm text-[var(--muted)] truncate">This month's "Waste" expenses</p>
           </div>
           <button onClick={onClose} className="grid size-8 place-items-center rounded-full text-[var(--muted)] hover:bg-[var(--bg-soft)]">
@@ -123,7 +126,9 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
 
         {wasteExpenses.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <span className="text-5xl">🎉</span>
+            <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 grid place-items-center">
+              <Sparkles size={24} className="text-emerald-500" />
+            </div>
             <p className="font-bold text-lg">No waste this month!</p>
             <p className="text-sm text-[var(--muted)]">You haven't logged a single waste expense. Keep it up!</p>
           </div>
@@ -138,8 +143,8 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
             </div>
 
             <div className="rounded-2xl bg-[var(--bg-soft)] p-4 mb-4">
-              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2">
-                💡 If you'd saved this instead…
+              <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <Lightbulb size={13} className="text-[#FFD166]" /> If you'd saved this instead…
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl bg-[var(--bg)] p-3 text-center">
@@ -162,7 +167,7 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
                     const pct = Math.round((amt / totalWaste) * 100);
                     return (
                       <li key={catId} className="flex items-center gap-3">
-                        <span className="text-lg w-7 shrink-0">{cat?.emoji ?? "✨"}</span>
+                        <span className="shrink-0"><AppIcon icon={cat?.emoji ?? "other"} size={18} /></span>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between mb-1">
                             <span className="text-sm font-medium truncate">{cat?.name ?? catId}</span>
@@ -205,7 +210,7 @@ export function WasteAuditModal({ onClose }: WasteAuditProps) {
               variant="soft"
               onClick={onClose}
             >
-              Got it – I'll do better 💪
+              Got it – I'll do better
             </Button>
           </>
         )}
@@ -324,7 +329,7 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
         <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
           <div className="min-w-0">
             <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">
-              🏆 Savings Challenges
+              <Trophy size={18} className="text-[#FFD166]" /> Savings Challenges
             </h2>
             <p className="text-xs sm:text-sm text-[var(--muted)] truncate">
               {completed.size}/{CHALLENGES.length} claimed · auto-evaluated
@@ -354,7 +359,7 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
                 }`}
               >
                 <div className="flex items-start gap-2.5 sm:gap-3">
-                  <span className="text-2xl sm:text-3xl shrink-0">{ch.icon}</span>
+                  <span className="shrink-0"><AppIcon name={ch.icon} size={26} /></span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-sm">{ch.name}</h3>
@@ -405,9 +410,9 @@ export function ChallengesModal({ onClose }: ChallengesProps) {
                           }`}
                         >
                           {completing === ch.id
-                            ? "🎉 Claiming…"
+                            ? "Claiming…"
                             : isAutoCompleted
-                              ? "Claim Badge 🎉"
+                              ? "Claim Badge"
                               : "Mark Complete"}
                         </button>
                       ) : (

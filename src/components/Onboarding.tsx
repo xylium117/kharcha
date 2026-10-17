@@ -10,7 +10,7 @@ import { db, TABLE_NAMES } from "@/lib/db";
 import { DEFAULT_CATEGORIES, DEFAULT_QUICK_BUTTONS, defaultSettings } from "@/lib/defaults";
 import { Mascot } from "./Mascot";
 import { Button, Input, Label } from "./ui";
-import { CloudDownload, Loader2 } from "lucide-react";
+import { CloudDownload, Loader2, Lock } from "lucide-react";
 
 export function Onboarding() {
   const [name, setName] = useState("");
@@ -98,7 +98,7 @@ export function Onboarding() {
           <Mascot mood="party" size={110} className="animate-bob" />
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight">Kharcha</h1>
           <p className="mt-2 text-sm text-muted">
-            Hi! I&apos;m <b className="text-ink">Stash</b> 🦉, your money buddy. Tell me a little about your pocket money and
+            Hi! I&apos;m <b className="text-ink">Stash</b>, your money buddy. Tell me a little about your pocket money and
             let&apos;s make every rupee count.
           </p>
         </div>
@@ -167,11 +167,12 @@ export function Onboarding() {
             </div>
           </div>
           <Button type="submit" size="lg" className="w-full" disabled={!valid || busy}>
-            Start fresh ✨
+            Start fresh
           </Button>
           <div className="rounded-2xl bg-bg-soft p-3 text-xs leading-relaxed text-muted">
-            <p>
-              🔒 <b className="text-ink">Your data stays private.</b> Sign in with Google to back up and restore across devices any time.
+            <p className="flex items-center gap-1.5">
+              <Lock size={13} className="shrink-0 text-accent" />
+              <span><b className="text-ink">Your data stays private.</b> Sign in with Google to back up and restore across devices any time.</span>
             </p>
           </div>
         </form>

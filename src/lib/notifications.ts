@@ -31,7 +31,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 
 /** Delivers a system / PWA notification using ServiceWorker or standard Notification API. */
 export async function showDailyReminderNotification(
-  title = "Kharcha 🦉 · Log your expenses",
+  title = "Kharcha · Log your expenses",
   body = "Did you spend anything today? Log it in seconds.",
   { tag = "kharcha-daily-reminder" }: { tag?: string } = {}
 ): Promise<boolean> {
@@ -125,7 +125,7 @@ export async function checkAndDeliverDailyReminder(settings?: Settings | null, f
   }
 
   const alreadyLogged = await hasLoggedExpenseToday(today);
-  const title = "Kharcha 🦉 · Time to log your day!";
+  const title = "Kharcha · Time to log your day!";
   const body = alreadyLogged
     ? "All set for today? Tap if you had any last-minute spends."
     : "Don't forget to log today's expenses! Tap to record in seconds.";

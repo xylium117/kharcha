@@ -386,7 +386,7 @@ export async function* builtinChat(
       `• **Canteen Thali / Dal-Chawal**: Usually ₹50–₹70, hot, filling, and balanced.\n` +
       `• **Campus Egg Bhurji & Rotis / Maggi + Boiled Egg**: ~₹30–₹45 at the local stall.\n` +
       `• **Paneer or Veg Roll / Masala Dosa**: ~₹40–₹60 from the college street corner.\n\n` +
-      `All well within your safe spend of ₹${Math.round(safeToday)} today! Skipping delivery app fees alone saves ₹60–₹80 tonight. 🦉`;
+      `All well within your safe spend of ₹${Math.round(safeToday)} today! Skipping delivery app fees alone saves ₹60–₹80 tonight.`;
   }
   // 2. Where am I wasting the most money?
   else if (/\b(?:waste|wasting|leaks?|overspending|cut\s*down)\b/i.test(lower)) {
@@ -397,7 +397,7 @@ export async function* builtinChat(
       `• **Waste Tagged**: ₹${Math.round(tagWaste)} (${wastePct}% of spending) is labelled as waste or regret this period.\n` +
       `• **Discretionary Wants**: ₹${Math.round(tagWant)} (${wantPct}%) went toward non-essential wants.\n` +
       `• **Top Category**: Your biggest category is **${topCat}** (₹${Math.round(maxCatVal > 0 ? maxCatVal : 0)}), which has the most room to trim.\n\n` +
-      `Try swapping one Zomato/Swiggy order for canteen this week and see how much buffer it recovers. 🦉`;
+      `Try swapping one Zomato/Swiggy order for canteen this week and see how much buffer it recovers.`;
   }
   // 3. Plan my spending for the rest of this month
   else if (/\b(?:plan.*spending|spending.*plan|rest\s*of\s*(?:this\s*)?month|pace.*month|budget.*plan)\b/i.test(lower)) {
@@ -408,7 +408,7 @@ export async function* builtinChat(
       `• **Remaining Pocket Money**: ₹${Math.round(remaining)}\n` +
       `• **Daily Allowance Breakdown**: ₹${Math.round(displayDaily)}/day (SAFE TO SPEND TODAY: ₹${Math.round(safeToday)})\n` +
       `• **Commitments**: Upcoming recurring bills: ₹${Math.round(upcomingRecurring)}, Goals reserve: ₹${Math.round(goalReserve)}\n\n` +
-      `Priorities: cover recurring ₹${Math.round(upcomingRecurring)}, keep goal reserve, then ₹${Math.round(safeToday)} today. Stick to need-first spending and review every evening for 2 minutes. 🦉`;
+      `Priorities: cover recurring ₹${Math.round(upcomingRecurring)}, keep goal reserve, then ₹${Math.round(safeToday)} today. Stick to need-first spending and review every evening for 2 minutes.`;
   }
   // 4. Am I spending too much?
   else if (/\b(?:spending\s*too\s*much|over\s*budget|track|pacing)\b/i.test(lower)) {
@@ -450,7 +450,7 @@ export async function* builtinChat(
     if (/\bgood\s*idea\b/i.test(lower)) {
       response = `Right now your safe-to-spend is ₹${Math.round(safeToday)} and you have ₹${Math.round(remaining)} left this period. ₹${Math.round(price)} on ${item} ${verdictText}.\n\nVERDICT: ${verdict}`;
     } else if (/\btonight|can\s*i\s*afford\b/i.test(lower)) {
-      const tail = verdict === "go" ? "It fits fine — go ahead! 🎉" : verdict === "think" ? "It would eat into tomorrow's buffer, so think before you swipe." : "It would push you over today's limit. Skip it for now.";
+      const tail = verdict === "go" ? "It fits fine — go ahead!" : verdict === "think" ? "It would eat into tomorrow's buffer, so think before you swipe." : "It would push you over today's limit. Skip it for now.";
       response = `Your SAFE TO SPEND TODAY is ₹${Math.round(safeToday)}. A ₹${Math.round(price)} ${item} ${verdictText}. ${tail}\n\nVERDICT: ${verdict}`;
     } else {
       const tail = verdict === "go" ? `All clear — ₹${Math.round(price)} fits comfortably.` : verdict === "think" ? "Possible, but it will tighten things until next pocket money." : "Not right now — you would be dipping into reserves.";
@@ -465,7 +465,7 @@ export async function* builtinChat(
   }
   // 10. General friendly fallback
   else {
-    response = `Hoo hoo! 🦉 Stash here. Right now you have ₹${Math.round(safeToday)} safe to spend today and ₹${Math.round(remaining)} left in your monthly pocket money with ${daysLeft} days to go. Ask me about your budget, safe spending, or any purchase!`;
+    response = `Stash here! Right now you have ₹${Math.round(safeToday)} safe to spend today and ₹${Math.round(remaining)} left in your monthly pocket money with ${daysLeft} days to go. Ask me about your budget, safe spending, or any purchase!`;
   }
 
   // Stream out response in smooth chunks
@@ -512,12 +512,12 @@ export function builtinWeeklyReport(
   };
 
   const funLines: Record<string, string> = {
-    "A+": "Your pocket money graph looks smoother than a fresh cup of filter coffee. 🦉",
-    "A": "Your variance is low and your financial vibes are high. 🦉",
-    "B": "The law of averages is safely on your side this week. 🦉",
-    "C": "Even Einstein had an outlier week once in a while. 🦉",
-    "D": "Standard deviation took the wheel for a bit, but we can reel it back! 🦉",
-    "F": "Outliers happen! Next week is a completely clean slate. 🦉",
+    "A+": "Your pocket money graph looks smoother than a fresh cup of filter coffee.",
+    "A": "Your variance is low and your financial vibes are high.",
+    "B": "The law of averages is safely on your side this week.",
+    "C": "Even Einstein had an outlier week once in a while.",
+    "D": "Standard deviation took the wheel for a bit, but we can reel it back!",
+    "F": "Outliers happen! Next week is a completely clean slate.",
   };
 
   return {
@@ -529,6 +529,6 @@ export function builtinWeeklyReport(
       "Gained clear visibility over daily spending patterns",
     ],
     tip: tips[grade] || "Keep logging daily to maintain your safe-to-spend buffer.",
-    funLine: funLines[grade] || "A wise owl never forgets to log their chai! 🦉",
+    funLine: funLines[grade] || "Always remember to log your daily chai!",
   };
 }

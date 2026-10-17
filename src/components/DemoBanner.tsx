@@ -9,6 +9,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AlertTriangle, CheckCircle2, FolderSync, Loader2, Trash2 } from "lucide-react";
 import { loadShortDemoData } from "@/lib/demo";
 
 export function DemoBanner() {
@@ -59,8 +60,8 @@ export function DemoBanner() {
         boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
       }}
     >
-      <span style={{ fontWeight: 700, letterSpacing: "0.03em" }}>
-        ⚠️ DEMO MODE (NOT FOR RELEASE)
+      <span style={{ fontWeight: 700, letterSpacing: "0.03em", display: "inline-flex", alignItems: "center", gap: "6px" }}>
+        <AlertTriangle size={14} /> DEMO MODE (NOT FOR RELEASE)
       </span>
       <span style={{ opacity: 0.6 }}>|</span>
 
@@ -78,11 +79,26 @@ export function DemoBanner() {
           fontWeight: 600,
           cursor: state === "loading" ? "wait" : "pointer",
           transition: "background 0.15s",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
         }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.35)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.2)")}
       >
-        {state === "loading" ? "⏳ Seeding 30 days…" : state === "done" ? "✅ Done!" : "🗂️ Load 30-day demo → Stats"}
+        {state === "loading" ? (
+          <>
+            <Loader2 size={13} className="animate-spin" /> Seeding 30 days…
+          </>
+        ) : state === "done" ? (
+          <>
+            <CheckCircle2 size={13} /> Done!
+          </>
+        ) : (
+          <>
+            <FolderSync size={13} /> Load 30-day demo → Stats
+          </>
+        )}
       </button>
 
       <button
@@ -98,11 +114,14 @@ export function DemoBanner() {
           fontWeight: 600,
           cursor: "pointer",
           transition: "background 0.15s",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
         }}
         onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.4)")}
         onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(0,0,0,0.2)")}
       >
-        🗑️ Clear all data
+        <Trash2 size={13} /> Clear all data
       </button>
     </div>
   );

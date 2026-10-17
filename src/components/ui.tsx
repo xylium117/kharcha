@@ -13,6 +13,7 @@ import {
   type SelectHTMLAttributes,
 } from "react";
 import { rupee } from "@/lib/format";
+import { AppIcon } from "./AppIcon";
 
 export function cn(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
@@ -266,10 +267,12 @@ export function Sheet({
   );
 }
 
-export function EmptyState({ emoji, title, children }: { emoji: string; title: string; children?: ReactNode }) {
+export function EmptyState({ emoji, icon, title, children }: { emoji?: string; icon?: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
-      <div className="animate-bob text-4xl">{emoji}</div>
+      <div className="animate-bob grid size-12 place-items-center rounded-2xl bg-bg-soft">
+        {icon ?? <AppIcon name={emoji} size={28} />}
+      </div>
       <p className="font-semibold">{title}</p>
       {children && <div className="max-w-xs text-sm text-muted">{children}</div>}
     </div>

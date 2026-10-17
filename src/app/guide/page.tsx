@@ -2,7 +2,7 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { motion } from "framer-motion";
-import { ArrowUp, Trash2 } from "lucide-react";
+import { AlertTriangle, ArrowUp, CheckCircle2, Lock, Trash2, XCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Mascot } from "@/components/Mascot";
@@ -22,10 +22,10 @@ const SUGGESTIONS = [
   "Is a ₹1,200 jacket a good idea right now?",
 ];
 
-const VERDICT_UI: Record<Verdict, { label: string; className: string }> = {
-  go: { label: "✅ Go for it", className: "bg-[#d9f7ec] text-[#0f6b4e] dark:bg-[#123a2e] dark:text-[#8ff0cc]" },
-  think: { label: "⚠️ Think twice", className: "bg-[#fff1d6] text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]" },
-  skip: { label: "❌ Skip it", className: "bg-[#ffe0e0] text-[#9b2c2c] dark:bg-[#3d1a1f] dark:text-[#ffb3b3]" },
+const VERDICT_UI: Record<Verdict, { label: string; icon: typeof CheckCircle2; className: string }> = {
+  go: { label: "Go for it", icon: CheckCircle2, className: "bg-[#d9f7ec] text-[#0f6b4e] dark:bg-[#123a2e] dark:text-[#8ff0cc]" },
+  think: { label: "Think twice", icon: AlertTriangle, className: "bg-[#fff1d6] text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]" },
+  skip: { label: "Skip it", icon: XCircle, className: "bg-[#ffe0e0] text-[#9b2c2c] dark:bg-[#3d1a1f] dark:text-[#ffb3b3]" },
 };
 
 export default function GuidePage() {
@@ -126,7 +126,7 @@ function Guide() {
   return (
     <div className="flex min-h-[calc(100dvh-10rem)] flex-col">
       <PageHeader
-        title="Ask Stash 🦉"
+        title="Ask Stash"
         subtitle="Your personal money mentor – knows your budget, goals and habits."
         action={
           messages.length > 0 && (
@@ -146,7 +146,10 @@ function Guide() {
           }}
           className="mb-4 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm"
         >
-          <p className="font-semibold">🔒 {wrongPasscode ? "That passcode didn't work" : "One-time setup on this device"}</p>
+          <p className="font-semibold flex items-center gap-1.5">
+            <Lock size={14} className="text-accent" />
+            <span>{wrongPasscode ? "That passcode didn't work" : "One-time setup on this device"}</span>
+          </p>
           <p className="mt-1 text-muted">Enter the app passcode (the APP_PASSCODE you chose) so I can answer you here.</p>
           <div className="mt-3 flex gap-2">
             <label htmlFor="chat-pass" className="sr-only">
@@ -251,7 +254,11 @@ function Bubble({ role, verdict, children }: { role: "user" | "assistant"; verdi
       >
         {typeof children === "string" ? <RichText text={children} /> : children}
         {verdict && (
-          <div className={cn("mt-2 inline-block rounded-full px-3 py-1 text-xs font-bold", VERDICT_UI[verdict].className)}>
+          <div className={cn("mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold", VERDICT_UI[verdict].className)}>
+            {(() => {
+              const Icon = VERDICT_UI[verdict].icon;
+              return <Icon size={13} className="shrink-0" />;
+            })()}
             {VERDICT_UI[verdict].label}
           </div>
         )}

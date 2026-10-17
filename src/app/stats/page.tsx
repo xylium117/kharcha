@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock,
   Compass,
+  Flame,
   HelpCircle,
   Lightbulb,
   Scale,
@@ -602,10 +603,13 @@ export default function StatsPage() {
                     )}
                   </p>
                   {s.welch.diff > 50 && (
-                    <p className="mt-2 text-muted">
-                      💡 <strong>Quick Savings Opportunity:</strong> If you kept your weekend spending just a little closer
-                      to your weekday level ({rupee(s.welch.meanB)}), you would save approximately{" "}
-                      <strong className="text-ink">{rupee(Math.round(s.welch.diff * 8))}</strong> every month.
+                    <p className="mt-2 text-muted flex items-start gap-1.5">
+                      <Lightbulb size={15} className="text-[#FFD166] shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Quick Savings Opportunity:</strong> If you kept your weekend spending just a little closer
+                        to your weekday level ({rupee(s.welch.meanB)}), you would save approximately{" "}
+                        <strong className="text-ink">{rupee(Math.round(s.welch.diff * 8))}</strong> every month.
+                      </span>
                     </p>
                   )}
                 </div>
@@ -798,8 +802,8 @@ export default function StatsPage() {
               <span>
                 Darker purple shading indicates higher spending density during that specific time block.
               </span>
-              <span className="font-semibold text-ink">
-                🔥 Peak Spending Window:{" "}
+              <span className="font-semibold text-ink inline-flex items-center gap-1.5">
+                <Flame size={14} className="text-[#FF7043]" /> Peak Spending Window:{" "}
                 <strong className="text-accent">
                   {(() => {
                     let maxVal = -1;

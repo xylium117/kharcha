@@ -111,7 +111,7 @@ export function localReport(m: WeekMetrics): WeeklyReport {
     headline: m.score >= 80 ? "Solid week, money master!" : m.score >= 60 ? "Decent week – room to level up" : "Tough week – next one's a fresh sample",
     wins,
     tip,
-    funLine: "Remember: one bad week is just an outlier, not the trend 📈",
+    funLine: "Remember: one bad week is just an outlier, not the trend.",
     createdAt: Date.now(),
     byAI: false,
   };

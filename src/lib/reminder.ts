@@ -4,7 +4,7 @@ import { addDays, addMinutes, format } from "date-fns";
  * A web app can't reliably ring a reminder while it's closed (that needs a paid push server),
  * so the daily "log today's kharcha" reminder lives in the user's calendar instead.
  */
-const TITLE = "Log today's kharcha 🦉";
+const TITLE = "Log today's kharcha";
 
 /** Next occurrence of HH:mm (today if still ahead, else tomorrow), in local time. */
 export function nextAt(time: string, now: Date): Date {

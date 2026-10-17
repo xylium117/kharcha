@@ -1,7 +1,8 @@
 "use client";
 
 import { addDays, addMonths, format, min as minDate, startOfDay } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, Brain, ChevronLeft, ChevronRight, CreditCard, GraduationCap, PieChart, TrendingDown, TrendingUp, Trophy } from "lucide-react";
+import { AppIcon } from "@/components/AppIcon";
 import { useMemo, useState } from "react";
 import { DailyBars, MonthBars, RankedBars, SplitBar, TrendLines } from "@/components/charts";
 import { ExpenseRow } from "@/components/ExpenseRow";
@@ -109,36 +110,36 @@ function MonthView({ settings, expenses }: { settings: Settings; expenses: Expen
 
       {data.list.length === 0 ? (
         <Card>
-          <EmptyState emoji="🗓️" title="No expenses in this period" />
+          <EmptyState emoji="calendar" title="No expenses in this period" />
         </Card>
       ) : (
         <>
           <Card>
-            <SectionTitle>📊 Daily spending</SectionTitle>
+            <SectionTitle><span className="flex items-center gap-1.5"><BarChart3 size={15} className="text-[#9D86F0]" /> Daily spending</span></SectionTitle>
             <DailyBars data={data.days} limit={data.limit} />
           </Card>
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
-              <SectionTitle>🍩 By category</SectionTitle>
+              <SectionTitle><span className="flex items-center gap-1.5"><PieChart size={15} className="text-[#FF85A1]" /> By category</span></SectionTitle>
               <RankedBars rows={data.ranked} total={data.spent} />
             </Card>
             <div className="space-y-4">
               <Card>
-                <SectionTitle>🧠 Need vs Want vs Waste</SectionTitle>
+                <SectionTitle><span className="flex items-center gap-1.5"><Brain size={15} className="text-[#FF6B8B]" /> Need vs Want vs Waste</span></SectionTitle>
                 <SplitBar {...data.tags} />
                 <p className="mt-3 text-sm text-muted">
                   {data.tags.waste > 0 ? (
                     <>
-                      You wasted <b className="text-ink">{rupee(data.tags.waste)}</b> this period 😬 – that&apos;s about{" "}
+                      You wasted <b className="text-ink">{rupee(data.tags.waste)}</b> this period – that&apos;s about{" "}
                       {Math.round(data.tags.waste / 15)} cups of chai.
                     </>
                   ) : (
-                    <>Zero waste this period. Absolute legend! 🌱</>
+                    <>Zero waste this period. Absolute legend!</>
                   )}
                 </p>
               </Card>
               <Card>
-                <SectionTitle>💳 Paid with</SectionTitle>
+                <SectionTitle><span className="flex items-center gap-1.5"><CreditCard size={15} className="text-[#A0C4FF]" /> Paid with</span></SectionTitle>
                 <div className="flex flex-wrap gap-2">
                   {data.pay.map(([mode, amt]) => (
                     <span key={mode} className="rounded-full bg-bg-soft px-3 py-1.5 text-sm">
@@ -150,7 +151,7 @@ function MonthView({ settings, expenses }: { settings: Settings; expenses: Expen
             </div>
           </div>
           <Card>
-            <SectionTitle>🏆 Biggest expenses</SectionTitle>
+            <SectionTitle><span className="flex items-center gap-1.5"><Trophy size={15} className="text-[#FFD166]" /> Biggest expenses</span></SectionTitle>
             <div className="-mx-2">
               {data.biggest.map((e) => (
                 <ExpenseRow key={e.id} e={e} cat={cats.get(e.categoryId)} showDate />
@@ -240,7 +241,7 @@ function YearView({ settings, expenses }: { settings: Settings; expenses: Expens
 
       {data.total === 0 ? (
         <Card>
-          <EmptyState emoji="📅" title="No expenses in this year yet" />
+          <EmptyState emoji="calendar" title="No expenses in this year yet" />
         </Card>
       ) : (
         <>
@@ -255,7 +256,7 @@ function YearView({ settings, expenses }: { settings: Settings; expenses: Expens
             <div className="grid gap-4 sm:grid-cols-2">
               {data.semesters.map((s) => (
                 <Card key={s.name}>
-                  <SectionTitle>🎓 {s.name}</SectionTitle>
+                  <SectionTitle><span className="flex items-center gap-1.5"><GraduationCap size={15} className="text-[#C8B6FF]" /> {s.name}</span></SectionTitle>
                   <p className="-mt-2 mb-3 text-xs text-muted">{s.range}</p>
                   <p className="num text-2xl font-bold">{rupee(s.spent)}</p>
                   <p className="text-sm text-muted">
@@ -263,8 +264,8 @@ function YearView({ settings, expenses }: { settings: Settings; expenses: Expens
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {s.top.map((t) => (
-                      <span key={t.id} className="rounded-full bg-bg-soft px-3 py-1 text-xs font-semibold">
-                        {t.cat?.emoji} {t.cat?.name} {rupee(t.amount)}
+                      <span key={t.id} className="rounded-full bg-bg-soft px-3 py-1 text-xs font-semibold inline-flex items-center gap-1.5">
+                        <AppIcon name={t.cat?.emoji || t.cat?.id} size={13} /> {t.cat?.name} {rupee(t.amount)}
                       </span>
                     ))}
                   </div>
@@ -274,20 +275,20 @@ function YearView({ settings, expenses }: { settings: Settings; expenses: Expens
           )}
 
           <Card>
-            <SectionTitle>📈 Month by month</SectionTitle>
+            <SectionTitle><span className="flex items-center gap-1.5"><TrendingUp size={15} className="text-[#06D6A0]" /> Month by month</span></SectionTitle>
             <MonthBars data={data.bars} />
           </Card>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
-              <SectionTitle>📉 Top 3 categories over time</SectionTitle>
+              <SectionTitle><span className="flex items-center gap-1.5"><TrendingDown size={15} className="text-[#4EA8DE]" /> Top 3 categories over time</span></SectionTitle>
               <TrendLines
                 data={data.trend}
-                series={data.top3.map((t) => ({ key: t.id, name: `${t.cat?.emoji ?? ""} ${t.cat?.name ?? t.id}` }))}
+                series={data.top3.map((t) => ({ key: t.id, name: t.cat?.name ?? t.id }))}
               />
             </Card>
             <Card>
-              <SectionTitle>🍩 Year by category</SectionTitle>
+              <SectionTitle><span className="flex items-center gap-1.5"><PieChart size={15} className="text-[#FF85A1]" /> Year by category</span></SectionTitle>
               <RankedBars rows={data.ranked} total={data.total} />
             </Card>
           </div>

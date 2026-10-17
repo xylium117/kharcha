@@ -9,10 +9,11 @@ import { db } from "@/lib/db";
 import { rupee } from "@/lib/format";
 import { useIncome } from "@/lib/hooks";
 import type { IncomeSource } from "@/lib/types";
+import { AppIcon } from "./AppIcon";
 import { useUI } from "./AppShell";
 import { Sheet, cn } from "./ui";
 
-const SOURCE_LABEL: Record<IncomeSource, string> = { gift: "🎁 Gift", refund: "↩️ Refund", repayment: "🤝 Paid back", other: "✨ Other" };
+const SOURCE_LABEL: Record<IncomeSource, string> = { gift: "Gift", refund: "Refund", repayment: "Paid back", other: "Other" };
 
 function Row({ label, value, sign, hint, strong }: { label: ReactNode; value: number; sign?: "+" | "−" | "="; hint?: ReactNode; strong?: boolean }) {
   return (
@@ -82,7 +83,10 @@ export function SafeToSpendSheet({ open, onClose, b }: { open: boolean; onClose:
             {income.map((i) => (
               <li key={i.id} className="flex items-center gap-3 border-b border-line py-2 text-sm last:border-0">
                 <span className="min-w-0 flex-1 truncate">
-                  {SOURCE_LABEL[i.source]}
+                  <span className="inline-flex items-center gap-1.5 font-medium">
+                    <AppIcon name={i.source} size={14} />
+                    {SOURCE_LABEL[i.source]}
+                  </span>
                   {i.note ? <span className="text-muted"> · {i.note}</span> : null}
                   <span className="block text-xs text-muted">{format(i.ts, "d MMM, h:mm a")}</span>
                 </span>
@@ -91,7 +95,7 @@ export function SafeToSpendSheet({ open, onClose, b }: { open: boolean; onClose:
                   aria-label="Delete this entry"
                   onClick={async () => {
                     await db.income.delete(i.id);
-                    toast({ emoji: "🗑️", message: "Removed", action: { label: "Undo", onClick: () => db.income.add(i) } });
+                    toast({ emoji: "trash", message: "Removed", action: { label: "Undo", onClick: () => db.income.add(i) } });
                   }}
                   className="grid size-9 place-items-center rounded-full text-muted hover:text-bad"
                 >

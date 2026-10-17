@@ -2,7 +2,8 @@
 
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowRight, Receipt, Send, Target, Zap } from "lucide-react";
+import { ArrowDown, ArrowRight, BookOpen, CalendarDays, Check, Download, FileText, Flame, Home, Medal, Moon, PartyPopper, PiggyBank, Receipt, Repeat, Send, ShieldCheck, Target, Trophy, Zap } from "lucide-react";
+import { AppIcon } from "@/components/AppIcon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -28,16 +29,16 @@ import { WasteAuditModal, ChallengesModal } from "@/components/WasteAndChallenge
 
 const SEASON_BANNER = {
   normal: null,
-  exam: { emoji: "📚", text: "Exam season · Essentials first" },
-  fest: { emoji: "🎉", text: "Fest mode · Extra fund active" },
-  home: { emoji: "🏠", text: "Home trip · Lower spend mode" },
+  exam: { icon: BookOpen, text: "Exam season · Essentials first" },
+  fest: { icon: PartyPopper, text: "Fest mode · Extra fund active" },
+  home: { icon: Home, text: "Home trip · Lower spend mode" },
 };
 
 const MOOD_LINE = {
-  happy: ["You're crushing it! 💜", "Budget's looking healthy.", "Great pace this month!"],
+  happy: ["You're crushing it!", "Budget's looking healthy.", "Great pace this month!"],
   chill: ["Doing okay – stay mindful.", "Steady as she goes.", "Not bad, keep an eye on wants."],
-  worried: ["Hmm, spending's running hot 😬", "Let's slow down a bit.", "Time for a few cheap days?"],
-  party: ["Party time! 🎉"],
+  worried: ["Hmm, spending's running hot", "Let's slow down a bit.", "Time for a few cheap days?"],
+  party: ["Party time!"],
 };
 
 export default function Dashboard() {
@@ -136,7 +137,7 @@ export default function Dashboard() {
     }
     await db.settings.update("me", { noSpendDays: [...settings.noSpendDays, todayKey] });
     celebrate();
-    toast({ emoji: "0️⃣", tone: "good", message: "No-spend day logged. Legend! 🏆" });
+    toast({ emoji: "check", tone: "good", message: "No-spend day logged. Legend!" });
   }
 
   const activeGoals = goals.filter((g) => !g.completedAt).slice(0, 2);
@@ -156,7 +157,7 @@ export default function Dashboard() {
 
       {banner && (
         <div className="flex items-center gap-2.5 rounded-2xl border border-line bg-card px-3.5 py-2 text-xs sm:text-sm">
-          <span className="text-base sm:text-lg">{banner.emoji}</span>
+          <banner.icon size={16} className="text-accent shrink-0" />
           <span className="font-semibold">{banner.text}</span>
         </div>
       )}
@@ -166,7 +167,7 @@ export default function Dashboard() {
         const isOver = spent >= cap;
         return (
           <div key={catId} className={`flex items-center gap-2.5 rounded-2xl border px-3.5 py-2 text-xs sm:text-sm ${isOver ? "border-bad/30 bg-bad/5 text-bad" : "border-warn/30 bg-[#fff4dc] text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]"}`}>
-            <span className="text-base sm:text-lg">{cat?.emoji ?? "🏷️"}</span>
+            <AppIcon name={cat?.emoji || cat?.id || "tag"} size={16} />
             <span className="flex-1 truncate">
               <b>{cat?.name ?? catId}</b> {isOver ? "exceeded cap" : "near cap"} ({rupee(spent)} / {rupee(cap)})
             </span>
@@ -177,14 +178,14 @@ export default function Dashboard() {
       {backupDue(settings, now.getTime()) && (
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-warn/30 bg-[#fff4dc] px-3.5 py-2.5 text-xs text-[#7a4b00] dark:bg-[#3a2e10] dark:text-[#ffd98a]">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base shrink-0">💾</span>
+            <Download size={15} className="text-[#7a4b00] dark:text-[#ffd98a] shrink-0" />
             <span className="truncate"><b>Backup due</b> · Save data offline</span>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button
               onClick={async () => {
                 await backupNow();
-                toast({ emoji: "💾", tone: "good", message: "Backup saved" });
+                toast({ emoji: "save", tone: "good", message: "Backup saved" });
               }}
               className="h-7 rounded-full bg-[#7a4b00] px-2.5 text-[11px] font-bold text-white dark:bg-[#ffd98a] dark:text-[#3a2e10]"
             >
@@ -203,7 +204,7 @@ export default function Dashboard() {
       {FEEDBACK_URL && week >= 2 && (settings.feedbackWeekDone ?? 0) < week && (
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-accent/30 bg-accent-soft px-3.5 py-2.5 text-xs">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base shrink-0">📝</span>
+            <FileText size={15} className="text-accent shrink-0" />
             <span className="truncate"><b>Week {week} check-in</b> (2 mins)</span>
           </div>
           <div className="flex gap-1.5 shrink-0">
@@ -226,7 +227,7 @@ export default function Dashboard() {
       {hour >= 20 && !streaks.todayActive && (
         <div className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-card px-3.5 py-2.5 text-xs">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base shrink-0">🌙</span>
+            <Moon size={15} className="text-accent shrink-0" />
             <span className="truncate">Keep your <b>{streaks.log}-day</b> streak alive</span>
           </div>
           <div className="flex gap-1.5 shrink-0">
@@ -260,15 +261,15 @@ export default function Dashboard() {
               {rupee(budget.dailyAllowance)} daily allowance · {rupee(budget.spentToday)} spent today
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-              <span className="rounded-full bg-white/50 px-3 py-1">🗓️ {budget.period.daysLeft} days left</span>
+              <span className="rounded-full bg-white/50 px-3 py-1 flex items-center gap-1.5"><CalendarDays size={12} /> {budget.period.daysLeft} days left</span>
               {budget.upcomingRecurring > 0 && (
-                <span className="rounded-full bg-white/50 px-3 py-1">🔁 {rupee(budget.upcomingRecurring)} bills coming</span>
+                <span className="rounded-full bg-white/50 px-3 py-1 flex items-center gap-1.5"><Repeat size={12} /> {rupee(budget.upcomingRecurring)} bills coming</span>
               )}
               {budget.goalReserve > 0 && (
-                <span className="rounded-full bg-white/50 px-3 py-1">🎯 {rupee(budget.goalReserve)} set aside for goals</span>
+                <span className="rounded-full bg-white/50 px-3 py-1 flex items-center gap-1.5"><Target size={12} /> {rupee(budget.goalReserve)} set aside for goals</span>
               )}
               {budget.incomeThisPeriod > 0 && (
-                <span className="rounded-full bg-white/50 px-3 py-1">💸 +{rupee(budget.incomeThisPeriod)} money in</span>
+                <span className="rounded-full bg-white/50 px-3 py-1 flex items-center gap-1.5"><ArrowDown size={12} /> +{rupee(budget.incomeThisPeriod)} money in</span>
               )}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -322,10 +323,10 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-3 items-stretch gap-3">
-        <StatTile label="Logging streak" value={`🔥 ${streaks.log}`} hint={streaks.log === 1 ? "day" : "days"} tone="#FFD6A5" />
-        <StatTile label="Under-limit streak" value={`🐷 ${streaks.under}`} hint="days" tone="#B8F2E6" />
+        <StatTile label="Logging streak" value={<span className="flex items-center gap-1.5"><Flame size={16} className="text-[#FF7043]" /> {streaks.log}</span>} hint={streaks.log === 1 ? "day" : "days"} tone="#FFD6A5" />
+        <StatTile label="Under-limit streak" value={<span className="flex items-center gap-1.5"><PiggyBank size={16} className="text-[#06D6A0]" /> {streaks.under}</span>} hint="days" tone="#B8F2E6" />
         <Link href="/settings#badges" className="block h-full transition hover:-translate-y-0.5">
-          <StatTile label="Badges" value={`🏅 ${badgeCount}`} hint="collected" tone="#C8B6FF" />
+          <StatTile label="Badges" value={<span className="flex items-center gap-1.5"><Medal size={16} className="text-[#9D86F0]" /> {badgeCount}</span>} hint="collected" tone="#C8B6FF" />
         </Link>
       </div>
 
@@ -340,15 +341,15 @@ export default function Dashboard() {
           <div className="flex gap-1.5 sm:gap-2 shrink-0">
             <button
               onClick={() => setShowWasteAudit(true)}
-              className="inline-flex h-8 items-center gap-1 rounded-xl border border-line bg-bg-soft px-2.5 text-xs font-semibold text-ink transition hover:border-accent/40 active:scale-95"
+              className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-line bg-bg-soft px-2.5 text-xs font-semibold text-ink transition hover:border-accent/40 active:scale-95"
             >
-              🔥 Waste Audit
+              <Flame size={13} className="text-[#FF7043]" /> Waste Audit
             </button>
             <button
               onClick={() => setShowChallenges(true)}
-              className="inline-flex h-8 items-center gap-1 rounded-xl bg-accent px-2.5 text-xs font-semibold text-white dark:text-[#15142a] shadow-soft transition hover:opacity-90 active:scale-95"
+              className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-accent px-2.5 text-xs font-semibold text-white dark:text-[#15142a] shadow-soft transition hover:opacity-90 active:scale-95"
             >
-              🏆 Challenges
+              <Trophy size={13} className="text-[#FFD166]" /> Challenges
             </button>
           </div>
         </div>
@@ -371,11 +372,11 @@ export default function Dashboard() {
           >
             <span
               className={cn(
-                "grid size-8 place-items-center rounded-xl text-lg transition-transform",
+                "grid size-8 place-items-center rounded-xl transition-transform",
                 isTodayNoSpend ? "bg-good/25 scale-105" : "bg-[#CAFFBF]"
               )}
             >
-              {isTodayNoSpend ? "✅" : "0️⃣"}
+              {isTodayNoSpend ? <Check size={16} className="text-good" /> : <span className="text-base leading-none" role="img">0️⃣</span>}
             </span>
             <span>{isTodayNoSpend ? "₹0 Logged" : "₹0 Spent"}</span>
             <span className="num text-xs font-bold text-good">
@@ -390,7 +391,7 @@ export default function Dashboard() {
               className="flex shrink-0 items-center gap-2 rounded-2xl border border-line bg-bg-soft py-1.5 pl-1.5 pr-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-accent/40 active:scale-95"
             >
               <span className="grid size-8 place-items-center rounded-xl text-lg" style={{ background: cats.get(q.categoryId)?.color ?? "#C8B6FF" }}>
-                {q.emoji}
+                <AppIcon name={q.emoji || q.categoryId} size={16} />
               </span> {q.label} <span className="num text-muted">{rupee(q.amount)}</span>
             </button>
           ))}
@@ -409,7 +410,7 @@ export default function Dashboard() {
             <span className="flex items-center gap-1.5"><Receipt size={14} className="text-[#FFC6D9]" /> Recent</span>
           </SectionTitle>
           {expenses.length === 0 ? (
-            <EmptyState emoji="🪙" title="Nothing logged yet">
+            <EmptyState emoji="coin" title="Nothing logged yet">
               Tap ＋ to add your first expense. Even a ₹10 chai counts!
             </EmptyState>
           ) : (

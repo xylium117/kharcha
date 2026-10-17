@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { Check, Plus, Split, Trash2 } from "lucide-react";
+import { Check, CheckCircle2, Plus, Split, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, Chip, EmptyState, Input, Label, PageHeader, Segmented, Select, Sheet, StatTile, cn } from "@/components/ui";
@@ -37,7 +37,7 @@ export default function SplitsPage() {
     const undo = await settleIous(items, timestamp());
     const back = items.filter((i) => i.direction === "theyOwe").reduce((s, i) => s + i.amount, 0);
     toast({
-      emoji: "🤝",
+      emoji: "handshake",
       tone: "good",
       message:
         back > 0
@@ -51,7 +51,7 @@ export default function SplitsPage() {
 
   async function remove(i: IOU) {
     await db.ious.delete(i.id);
-    toast({ emoji: "🗑️", message: "IOU deleted", action: { label: "Undo", onClick: () => db.ious.add(i) } });
+    toast({ emoji: "trash", message: "IOU deleted", action: { label: "Undo", onClick: () => db.ious.add(i) } });
   }
 
   return (
@@ -73,7 +73,7 @@ export default function SplitsPage() {
 
       {people.length === 0 ? (
         <Card>
-          <EmptyState emoji="🤝" title="All square!">
+          <EmptyState emoji="handshake" title="All square!">
             Nobody owes anybody. Split a canteen bill or log an IOU when it happens.
           </EmptyState>
         </Card>
@@ -122,7 +122,8 @@ export default function SplitsPage() {
       {settled.length > 0 && (
         <Card>
           <button className="flex w-full items-center justify-between font-bold" onClick={() => setShowSettled((s) => !s)} aria-expanded={showSettled}>
-            ✅ Settled ({settled.length}) <span className="text-sm font-semibold text-accent">{showSettled ? "Hide" : "Show"}</span>
+            <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-good" /> Settled ({settled.length})</span>
+            <span className="text-sm font-semibold text-accent">{showSettled ? "Hide" : "Show"}</span>
           </button>
           {showSettled && (
             <ul className="mt-3 space-y-1 text-sm text-muted">
@@ -238,7 +239,7 @@ function SplitSheet({ open, onClose, names }: { open: boolean; onClose: () => vo
         await db.ious.add({ id: uid(), person: payer, amount: share, direction: "iOwe", reason: what, ts, settled: false });
       }
     });
-    toast({ emoji: "🧾", tone: "good", message: `Split ${rupee(Number(total))} ${n} ways – ${rupee(share)} each` });
+    toast({ emoji: "receipt", tone: "good", message: `Split ${rupee(Number(total))} ${n} ways – ${rupee(share)} each` });
     setTitle("");
     setTotal("");
     setFriends([]);

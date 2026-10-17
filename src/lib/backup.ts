@@ -174,9 +174,9 @@ export async function exportMonthPDF(
   <div class="card"><p class="card-label">Remaining</p><p class="card-value" style="color:${totalBudget - total >= 0 ? "#059669" : "#dc2626"}">${(totalBudget - total).toLocaleString()}</p></div>
 </div>
 <table><thead><tr><th>Tag</th><th class="num">Amount</th></tr></thead><tbody>
-<tr><td>✅ Need</td><td class="num">${byTag.need.toLocaleString()}</td></tr>
-<tr><td>💭 Want</td><td class="num">${byTag.want.toLocaleString()}</td></tr>
-<tr><td>🗑️ Waste</td><td class="num">${byTag.waste.toLocaleString()}</td></tr>
+<tr><td>Need</td><td class="num">${byTag.need.toLocaleString()}</td></tr>
+<tr><td>Want</td><td class="num">${byTag.want.toLocaleString()}</td></tr>
+<tr><td>Waste</td><td class="num">${byTag.waste.toLocaleString()}</td></tr>
 </tbody></table>
 <table><thead><tr><th>Category</th><th class="num">Amount</th></tr></thead><tbody>${catRows}</tbody></table>
 <table><thead><tr><th>Date</th><th>Title</th><th>Category</th><th>Tag</th><th class="num">Amount</th></tr></thead><tbody>${expRows}</tbody></table>

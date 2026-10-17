@@ -20,6 +20,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { BADGES, earnedBadges } from "@/lib/badges";
+import { AppIcon } from "./AppIcon";
 import { celebrate } from "@/lib/confetti";
 import { db } from "@/lib/db";
 import { FEEDBACK_URL } from "@/lib/feedback";
@@ -92,7 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     postDueRecurring().then((n) => {
-      if (n > 0) toast({ emoji: "🔁", message: `Added ${n} recurring expense${n > 1 ? "s" : ""}` });
+      if (n > 0) toast({ emoji: "repeat", message: `Added ${n} recurring expense${n > 1 ? "s" : ""}` });
     });
   }, [ready, toast]);
 
@@ -131,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Mascot mood="happy" size={40} />
             <div>
               <div className="text-lg font-extrabold leading-tight tracking-tight">Kharcha</div>
-              <div className="text-xs text-muted">hey {settings.name} 👋</div>
+              <div className="text-xs text-muted">hey {settings.name}</div>
             </div>
           </Link>
           {NAV.map((n) => (
@@ -249,7 +250,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     : "border-line bg-card text-ink",
               )}
             >
-              {t.emoji && <span className="text-lg">{t.emoji}</span>}
+              {t.emoji && <AppIcon name={t.emoji} size={18} />}
               <span>{t.message}</span>
               {t.action && (
                 <button
@@ -343,7 +344,7 @@ function useBadgeWatcher(toast: UIContextValue["toast"]) {
       toast({
         emoji: first.emoji,
         tone: "good",
-        message: fresh.length === 1 ? `Badge unlocked: ${first.name}!` : `${fresh.length} new badges unlocked! 🎉`,
+        message: fresh.length === 1 ? `Badge unlocked: ${first.name}!` : `${fresh.length} new badges unlocked!`,
       });
     });
   }, [data, toast]);

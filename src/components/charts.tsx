@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { rupee } from "@/lib/format";
 import type { Category } from "@/lib/types";
+import { AppIcon } from "./AppIcon";
 import { cn } from "./ui";
 
 const AXIS = { fontSize: 11, fill: "var(--muted)" };
@@ -117,7 +118,7 @@ export function RankedBars({
       {rows.map((r, i) => (
         <li key={r.id} className="flex items-center gap-3">
           <span className="grid size-9 shrink-0 place-items-center rounded-xl text-lg" style={{ background: r.cat?.color ?? "#eee" }} aria-hidden>
-            {r.cat?.emoji ?? "✨"}
+            <AppIcon name={r.cat?.emoji || r.cat?.id || "other"} size={18} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex items-baseline justify-between gap-2 text-sm">
@@ -147,9 +148,9 @@ export function RankedBars({
 export function SplitBar({ need, want, waste }: { need: number; want: number; waste: number }) {
   const total = need + want + waste;
   const parts = [
-    { key: "need", label: "✅ Need", value: need, color: "var(--s-need)" },
-    { key: "want", label: "💭 Want", value: want, color: "var(--s-want)" },
-    { key: "waste", label: "🗑️ Waste", value: waste, color: "var(--s-waste)" },
+    { key: "need", label: "Need", value: need, color: "var(--s-need)" },
+    { key: "want", label: "Want", value: want, color: "var(--s-want)" },
+    { key: "waste", label: "Waste", value: waste, color: "var(--s-waste)" },
   ];
   return (
     <div>
@@ -173,7 +174,7 @@ export function SplitBar({ need, want, waste }: { need: number; want: number; wa
         {parts.map((p) => (
           <div key={p.key} className="rounded-2xl bg-bg-soft p-2.5">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-muted">
-              <span className="inline-block size-2.5 rounded-[3px]" style={{ background: p.color }} />
+              <AppIcon name={p.key} size={13} />
               {p.label}
             </div>
             <div className="num mt-0.5 font-bold">{rupee(p.value)}</div>

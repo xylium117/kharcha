@@ -2,7 +2,7 @@
 
 import { addDays, format } from "date-fns";
 import { useLiveQuery } from "dexie-react-hooks";
-import { RefreshCw } from "lucide-react";
+import { CheckCircle2, FileText, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { fetchWeeklyReport, getAIStatus } from "@/lib/ai-client";
 import { celebrate } from "@/lib/confetti";
@@ -69,7 +69,7 @@ export function WeeklyReportCard({ delay = 0 }: { delay?: number }) {
           )
         }
       >
-        📜 Weekly report card
+        <span className="flex items-center gap-1.5"><FileText size={15} className="text-[#A0C4FF]" /> Weekly report card</span>
       </SectionTitle>
       <p className="-mt-2 mb-3 text-xs text-muted">
         {format(ws, "d MMM")} – {format(addDays(ws, 6), "d MMM")}
@@ -78,7 +78,7 @@ export function WeeklyReportCard({ delay = 0 }: { delay?: number }) {
         <div className="flex flex-col items-start gap-3">
           <p className="text-sm text-muted">Stash has graded your last week. Ready to see it?</p>
           <Button onClick={generate} disabled={busy}>
-            {busy ? "Grading…" : "Reveal my grade 🎓"}
+            {busy ? "Grading…" : "Reveal my grade"}
           </Button>
         </div>
       ) : (
@@ -93,7 +93,7 @@ export function WeeklyReportCard({ delay = 0 }: { delay?: number }) {
             <p className="font-bold">{report.headline}</p>
             <ul className="space-y-1">
               {report.wins.map((w) => (
-                <li key={w}>✅ {w}</li>
+                <li key={w} className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-good shrink-0" /> {w}</li>
               ))}
             </ul>
             <p>

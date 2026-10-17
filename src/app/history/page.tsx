@@ -141,7 +141,7 @@ export default function HistoryPage() {
 
       {filtered.length === 0 ? (
         <Card>
-          <EmptyState emoji="🔍" title={expenses.length ? "No matches" : "No expenses yet"}>
+          <EmptyState emoji="search" title={expenses.length ? "No matches" : "No expenses yet"}>
             {expenses.length ? "Try a different search or clear the filters." : "Tap ＋ to log your first one."}
           </EmptyState>
         </Card>

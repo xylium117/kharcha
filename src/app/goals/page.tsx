@@ -1,7 +1,8 @@
 "use client";
 
 import { addMonths, differenceInCalendarDays, format } from "date-fns";
-import { Plus, Trash2, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, ShieldAlert, Trophy } from "lucide-react";
+import { AppIcon } from "@/components/AppIcon";
 import { useState } from "react";
 import { useUI } from "@/components/AppShell";
 import { Button, Card, EmptyState, Input, Label, PageHeader, Progress, SectionTitle, Sheet, cn } from "@/components/ui";
@@ -38,7 +39,7 @@ export default function GoalsPage() {
       await recordLocalDeletion("goalContributions", c.id);
     }
     toast({
-      emoji: "🗑️",
+      emoji: "trash",
       message: `Deleted "${g.title}"`,
       action: {
         label: "Undo",
@@ -65,7 +66,7 @@ export default function GoalsPage() {
 
       {goals.length === 0 && (
         <Card>
-          <EmptyState emoji="🎯" title="No goals yet">
+          <EmptyState emoji="💰" title="No goals yet">
             Saving for headphones, a trip or a new phone? Add a goal and Stash will tell you how much to put aside each day.
           </EmptyState>
         </Card>
@@ -80,7 +81,9 @@ export default function GoalsPage() {
           return (
             <Card key={g.id} delay={i * 0.05}>
               <div className="flex items-start gap-3">
-                <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-mint text-3xl">{g.emoji}</span>
+                <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-mint">
+                  <AppIcon name={g.emoji} size={28} />
+                </span>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-lg font-bold">{g.title}</h2>
                   <p className="text-xs text-muted">
@@ -99,7 +102,7 @@ export default function GoalsPage() {
               <Progress value={pct} color="var(--s-need)" className="mt-2 h-3" />
               <div className="mt-3 flex items-center justify-between gap-2">
                 <p className="text-sm">
-                  Save <b className="num">{rupee(Math.ceil(perDay))}/day</b> <span className="text-muted">to make it 🐷</span>
+                  Save <b className="num">{rupee(Math.ceil(perDay))}/day</b> <span className="text-muted">to make it</span>
                 </p>
                 <Button size="sm" variant="soft" onClick={() => setAdding(g)}>
                   + Add money
@@ -112,11 +115,11 @@ export default function GoalsPage() {
 
       {done.length > 0 && (
         <Card>
-          <h2 className="mb-3 font-bold">🏆 Completed</h2>
+          <h2 className="mb-3 font-bold flex items-center gap-1.5"><Trophy size={16} className="text-[#FFD166]" /> Completed</h2>
           <div className="flex flex-wrap gap-2">
             {done.map((g) => (
-              <span key={g.id} className="rounded-full bg-mint px-3 py-1.5 text-sm font-semibold text-[#2d2a3e]">
-                {g.emoji} {g.title} · {rupee(g.target)}
+              <span key={g.id} className="rounded-full bg-mint px-3 py-1.5 text-sm font-semibold text-[#2d2a3e] inline-flex items-center gap-1.5">
+                <AppIcon name={g.emoji} size={15} /> {g.title} · {rupee(g.target)}
               </span>
             ))}
           </div>
@@ -133,9 +136,9 @@ export default function GoalsPage() {
         onDone={(g, reached) => {
           if (reached) {
             celebrate(true);
-            toast({ emoji: g.emoji, tone: "good", message: `Goal reached: ${g.title}! 🎉` });
+            toast({ emoji: g.emoji, tone: "good", message: `Goal reached: ${g.title}!` });
           } else {
-            toast({ emoji: "🐷", message: "Saved! Every rupee counts." });
+            toast({ emoji: "piggy", message: "Saved! Every rupee counts." });
           }
         }}
       />
@@ -176,9 +179,9 @@ function NewGoalSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 key={e}
                 onClick={() => setEmoji(e)}
                 aria-pressed={emoji === e}
-                className={cn("grid size-11 place-items-center rounded-2xl text-2xl", emoji === e ? "bg-accent-soft ring-2 ring-accent" : "bg-bg-soft")}
+                className={cn("grid size-11 place-items-center rounded-2xl", emoji === e ? "bg-accent-soft ring-2 ring-accent" : "bg-bg-soft")}
               >
-                {e}
+                <AppIcon name={e} size={22} />
               </button>
             ))}
           </div>
@@ -199,7 +202,7 @@ function NewGoalSheet({ open, onClose }: { open: boolean; onClose: () => void })
         </div>
         {valid && (
           <p className="rounded-2xl bg-bg-soft p-3 text-sm">
-            🦉 That&apos;s about{" "}
+            That&apos;s about{" "}
             <b className="num">
               {rupee(Math.ceil(Number(target) / Math.max(1, differenceInCalendarDays(parseDayKey(deadline), new Date()) + 1)))}
             </b>{" "}
@@ -275,7 +278,7 @@ function ContributeSheet({
           ))}
         </div>
         <Button type="submit" size="lg" className="w-full" disabled={!(Number(amount) > 0)}>
-          Save to goal 🐷
+          Save to goal
         </Button>
       </form>
     </Sheet>

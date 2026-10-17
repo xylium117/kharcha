@@ -1,7 +1,8 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { Hourglass, MessageCircleHeart, ShoppingCart } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Hourglass, MessageCircleHeart, ShoppingCart, XCircle } from "lucide-react";
+import { AppIcon } from "@/components/AppIcon";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useUI } from "@/components/AppShell";
@@ -17,9 +18,9 @@ import type { Verdict, WishItem } from "@/lib/types";
 const COOL_OFF_MS = 24 * 60 * 60 * 1000;
 
 const VERDICT = {
-  go: { title: "Go for it ✅", text: "It fits inside today's safe-to-spend.", bg: "#B8F2E6", mood: "party" as const },
-  think: { title: "Think twice ⚠️", text: "Affordable, but it eats into the coming days.", bg: "#FFD6A5", mood: "chill" as const },
-  skip: { title: "Skip it ❌", text: "This would blow a big hole in your budget.", bg: "#FFADAD", mood: "worried" as const },
+  go: { title: "Go for it", text: "It fits inside today's safe-to-spend.", bg: "#B8F2E6", mood: "party" as const, icon: CheckCircle2 },
+  think: { title: "Think twice", text: "Affordable, but it eats into the coming days.", bg: "#FFD6A5", mood: "chill" as const, icon: AlertTriangle },
+  skip: { title: "Skip it", text: "This would blow a big hole in your budget.", bg: "#FFADAD", mood: "worried" as const, icon: XCircle },
 };
 
 export default function BuyPage() {
@@ -70,7 +71,7 @@ export default function BuyPage() {
     const amount = w?.price ?? p;
     await db.expenses.add({ id: uid(), amount, title, categoryId: w?.categoryId ?? categoryId, tag: "want", paymentMode: "UPI", ts: timestamp(), source: "wishlist" });
     if (w) await db.wishlist.update(w.id, { status: "bought", decidedAt: timestamp() });
-    toast({ emoji: "🛍️", message: `${title} ${rupee(amount)} logged. Enjoy it!` });
+    toast({ emoji: "shopping", message: `${title} ${rupee(amount)} logged. Enjoy it!` });
     if (!w) {
       setItem("");
       setPrice("");
@@ -87,7 +88,7 @@ export default function BuyPage() {
   async function skip(w: WishItem) {
     await db.wishlist.update(w.id, { status: "skipped", decidedAt: timestamp() });
     celebrate();
-    toast({ emoji: "🗡️", tone: "good", message: `Impulse slain! ${rupee(w.price)} stays in your pocket.` });
+    toast({ emoji: "award", tone: "good", message: `Impulse slain! ${rupee(w.price)} stays in your pocket.` });
   }
 
   const waiting = wishlist.filter((w) => w.status === "waiting").sort((a, b) => a.addedAt - b.addedAt);
@@ -134,7 +135,13 @@ export default function BuyPage() {
               <div className="mb-4 flex items-center gap-3 rounded-2xl p-3 text-[#2d2a3e]" style={{ background: VERDICT[analysis.verdict].bg }}>
                 <Mascot mood={VERDICT[analysis.verdict].mood} size={52} />
                 <div>
-                  <p className="text-lg font-extrabold">{VERDICT[analysis.verdict].title}</p>
+                  <p className="text-lg font-extrabold flex items-center gap-1.5">
+                    {(() => {
+                      const Icon = VERDICT[analysis.verdict].icon;
+                      return <Icon size={18} className="shrink-0" />;
+                    })()}
+                    {VERDICT[analysis.verdict].title}
+                  </p>
                   <p className="text-sm">{VERDICT[analysis.verdict].text}</p>
                 </div>
               </div>
@@ -152,12 +159,12 @@ export default function BuyPage() {
                 <StatTile
                   label="Goal delay"
                   value={analysis.goalDelay ? `${analysis.goalDelay.days} days` : "—"}
-                  hint={analysis.goalDelay ? `${analysis.goalDelay.emoji} ${analysis.goalDelay.title}` : "no active goal"}
+                  hint={analysis.goalDelay ? <span className="inline-flex items-center gap-1"><AppIcon name={analysis.goalDelay.emoji} size={12} /> {analysis.goalDelay.title}</span> : "no active goal"}
                 />
               </div>
               <p className="mt-3 text-sm text-muted">
-                That&apos;s also <b className="text-ink">{Math.floor(p / 15)} cups of chai ☕</b>, {Math.floor(p / 60)} canteen thalis 🍛 or{" "}
-                {Math.floor(p / 20)} bus rides 🚌.
+                That&apos;s also <b className="text-ink">{Math.floor(p / 15)} cups of chai</b>, {Math.floor(p / 60)} canteen meals or{" "}
+                {Math.floor(p / 20)} bus rides.
               </p>
               <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <Button variant={analysis.verdict === "go" ? "primary" : "soft"} onClick={() => buyNow()}>
@@ -179,17 +186,17 @@ export default function BuyPage() {
       </div>
 
       <Card>
-        <SectionTitle>⏳ Cool-off wishlist</SectionTitle>
+        <SectionTitle><span className="flex items-center gap-1.5"><Hourglass size={15} className="text-[#FFD166]" /> Cool-off wishlist</span></SectionTitle>
         <p className="-mt-2 mb-3 text-sm text-muted">
           Impulse buys wait 24 hours here. Most cravings fade.{" "}
           {savedBySkipping > 0 && (
             <>
-              So far you&apos;ve saved <b className="text-good">{rupee(savedBySkipping)}</b> by skipping. 🗡️
+              So far you&apos;ve saved <b className="text-good">{rupee(savedBySkipping)}</b> by skipping.
             </>
           )}
         </p>
         {waiting.length === 0 ? (
-          <p className="text-sm text-muted">Nothing waiting. Your wallet is at peace. 🧘</p>
+          <p className="text-sm text-muted">Nothing waiting. Your wallet is at peace.</p>
         ) : (
           <ul className="space-y-2">
             {waiting.map((w) => {
@@ -197,7 +204,7 @@ export default function BuyPage() {
               return (
                 <li key={w.id} className={cn("flex flex-wrap items-center gap-3 rounded-2xl border border-line p-3", ready && "bg-accent-soft")}>
                   <span className="grid size-10 place-items-center rounded-xl text-xl" style={{ background: cats.get(w.categoryId)?.color }}>
-                    {cats.get(w.categoryId)?.emoji ?? "🛍️"}
+                    <AppIcon name={cats.get(w.categoryId)?.emoji || w.categoryId || "shopping"} size={20} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">
@@ -209,7 +216,7 @@ export default function BuyPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" variant="soft" onClick={() => skip(w)}>
-                      Skip it 🗡️
+                      Skip it
                     </Button>
                     <Button size="sm" variant={ready ? "primary" : "ghost"} onClick={() => buyNow(w)}>
                       Buy

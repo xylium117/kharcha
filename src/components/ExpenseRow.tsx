@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Repeat } from "lucide-react";
 import { rupee } from "@/lib/format";
 import type { Category, Expense } from "@/lib/types";
+import { AppIcon } from "./AppIcon";
 import { useUI } from "./AppShell";
 
 const TAG_STYLE = {
@@ -24,12 +25,12 @@ export function ExpenseRow({ e, cat, showDate }: { e: Expense; cat?: Category; s
         style={{ background: cat?.color ?? "#eee" }}
         aria-hidden
       >
-        {cat?.emoji ?? "✨"}
+        <AppIcon name={cat?.emoji || cat?.id || "other"} size={22} />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5 truncate font-semibold">
           {e.title}
-          {e.mood && <span className="text-sm">{e.mood}</span>}
+          {e.mood && <AppIcon name={e.mood} size={15} />}
           {e.recurringId && <Repeat size={13} className="shrink-0 text-muted" aria-label="Recurring" />}
         </span>
         <span className="block truncate text-xs text-muted">

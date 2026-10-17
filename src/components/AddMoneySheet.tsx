@@ -6,14 +6,15 @@ import { celebrate } from "@/lib/confetti";
 import { db, uid } from "@/lib/db";
 import { rupee, timestamp } from "@/lib/format";
 import type { IncomeSource } from "@/lib/types";
+import { AppIcon } from "./AppIcon";
 import { useUI } from "./AppShell";
 import { Button, Chip, Input, Label, Sheet, cn } from "./ui";
 
 const SOURCES: { id: IncomeSource; label: string }[] = [
-  { id: "gift", label: "🎁 Gift" },
-  { id: "refund", label: "↩️ Refund" },
-  { id: "repayment", label: "🤝 Paid back" },
-  { id: "other", label: "✨ Other" },
+  { id: "gift", label: "Gift" },
+  { id: "refund", label: "Refund" },
+  { id: "repayment", label: "Paid back" },
+  { id: "other", label: "Other" },
 ];
 
 /** Logs money coming in on top of pocket money; it raises this month's spendable amount. */
@@ -38,7 +39,7 @@ export function AddMoneySheet({ open, onClose }: { open: boolean; onClose: () =>
     await db.income.add(entry);
     celebrate();
     toast({
-      emoji: "💸",
+      emoji: "money",
       tone: "good",
       message: `${rupee(a)} added to this month's budget`,
       action: { label: "Undo", onClick: () => db.income.delete(entry.id) },
@@ -79,7 +80,7 @@ export function AddMoneySheet({ open, onClose }: { open: boolean; onClose: () =>
           <div className="flex flex-wrap gap-2">
             {SOURCES.map((s) => (
               <Chip key={s.id} active={source === s.id} color="#B8F2E6" onClick={() => setSource(s.id)}>
-                {s.label}
+                <AppIcon name={s.id} size={14} /> {s.label}
               </Chip>
             ))}
           </div>
